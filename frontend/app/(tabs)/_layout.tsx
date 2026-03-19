@@ -72,17 +72,20 @@ export default function TabsLayout() {
   const isWeb = width >= breakpoints.web;
   const setTab = useContextStore((s) => s.setTab);
 
+  // sceneContainerStyle is valid on the underlying React Navigation BottomTabNavigator
+  // but Expo Router's Tabs types don't expose it — cast to pass it through
+  const extraTabsProps = { sceneContainerStyle: { backgroundColor: 'transparent' } };
+
   return (
     <Tabs
       tabBar={(props) => <TabBar {...props} />}
+      {...(extraTabsProps as any)}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { display: 'none' }, // custom TabBar handles rendering
+        tabBarStyle: { display: 'none' },
       }}
       screenListeners={{
-        tabPress: (e) => {
-          // Keep context.tab in sync
-        },
+        tabPress: (_e) => {},
       }}
     >
       <Tabs.Screen

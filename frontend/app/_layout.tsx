@@ -141,14 +141,14 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="event-detail"
-              options={{
-                headerShown: false,
-                animation: 'slide_from_right',
-                contentStyle: { backgroundColor: colors.background.primary },
-              }}
-            />
+          <Stack.Screen
+            name="event-detail"
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
           </Stack>
         </SafeAreaView>
       </View>
