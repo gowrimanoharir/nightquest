@@ -1,0 +1,35 @@
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import theme from '@/constants/theme';
+
+const { colors, typography, spacing } = theme;
+
+// Phase 3A builds this screen. Placeholder until then.
+export default function StargazeScreen() {
+  return (
+    <View style={styles.screen}>
+      <Text style={styles.heading}>Stargaze</Text>
+      <Text style={styles.sub}>Dark sky spot finder — coming in Phase 3A</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    padding: spacing['6xl'],
+  },
+  heading: {
+    ...typography.scale.heading.large,
+    color: colors.text.primary,
+    marginBottom: spacing.xl,
+  },
+  sub: {
+    ...typography.scale.body.small,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+});

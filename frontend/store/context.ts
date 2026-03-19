@@ -1,0 +1,101 @@
+import { create } from 'zustand';
+
+// --- Shape mirrors backend schemas.py exactly ---
+
+export type EventType = 'meteor_shower' | 'eclipse' | 'moon' | 'planet' | 'milky_way';
+
+export interface Location {
+  lat: number;
+  lon: number;
+  name?: string;
+  source?: 'gps' | 'ip' | 'timezone' | 'manual';
+  timezone?: string;
+}
+
+export interface ActiveEvent {
+  name: string;
+  date: string;
+  type: EventType;
+}
+
+export interface DarkSpotSite {
+  name: string;
+  lat: number;
+  lon: number;
+  bortle_estimate?: number;
+  certified?: boolean;
+  website?: string;
+  country?: string;
+  state?: string;
+}
+
+export interface ActiveSpot {
+  name: string;
+  lat: number;
+  lon: number;
+  bortle?: number;
+  distance?: number;
+  certified?: boolean;
+  website?: string;
+}
+
+export interface VisibilityConditions {
+  available: boolean;
+  for_date?: string;
+  for_location?: Pick<Location, 'lat' | 'lon'>;
+}
+
+export interface ContextObject {
+  tab: 'explore' | 'stargaze';
+  location: Location | null;
+  date: string | null;
+  active_event: ActiveEvent | null;
+  spots: DarkSpotSite[];
+  active_spot: ActiveSpot | null;
+  visibility_conditions: VisibilityConditions | null;
+}
+
+interface ContextStore extends ContextObject {
+  setTab: (tab: ContextObject['tab']) => void;
+  setLocation: (location: Location) => void;
+  setDate: (date: string) => void;
+  setActiveEvent: (event: ActiveEvent | null) => void;
+  setSpots: (spots: DarkSpotSite[]) => void;
+  setActiveSpot: (spot: ActiveSpot | null) => void;
+  setVisibilityConditions: (conditions: VisibilityConditions) => void;
+  // Straight replace — called when any API response has context_updated: true
+  applyContextUpdates: (updated: ContextObject) => void;
+}
+
+const defaultContext: ContextObject = {
+  tab: 'explore',
+  location: null,
+  date: null,
+  active_event: null,
+  spots: [],
+  active_spot: null,
+  visibility_conditions: null,
+};
+
+export const useContextStore = create<ContextStore>((set) => ({
+  ...defaultContext,
+
+  setTab: (tab) => set({ tab }),
+  setLocation: (location) => set({ location }),
+  setDate: (date) => set({ date }),
+  setActiveEvent: (active_event) => set({ active_event }),
+  setSpots: (spots) => set({ spots }),
+  setActiveSpot: (active_spot) => set({ active_spot }),
+  setVisibilityConditions: (visibility_conditions) => set({ visibility_conditions }),
+
+  applyContextUpdates: (updated) =>
+    set({
+      tab: updated.tab,
+      location: updated.location,
+      date: updated.date,
+      active_event: updated.active_event,
+      spots: updated.spots,
+      active_spot: updated.active_spot,
+      visibility_conditions: updated.visibility_conditions,
+    }),
+}));
