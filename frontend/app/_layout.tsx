@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import {
+  Platform,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -115,56 +116,66 @@ export default function RootLayout() {
   const isWeb = width >= breakpoints.web;
   const { run: autoDetect } = useAutoDetectLocation();
 
-  // Trigger silent location detection once at app root
   useEffect(() => { autoDetect(); }, []);
 
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor={colors.background.primary} />
 
-      {/* Star field — fixed, behind everything */}
-      <View style={styles.starWrap} pointerEvents="none">
-        <StarBackground />
-      </View>
+      {/* Outermost container owns the dark base color — fills the full viewport */}
+      <View style={styles.container}>
 
-      <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-        {isWeb && <WebHeader />}
+        {/* Star field — covers the container, behind all content */}
+        <View style={styles.starLayer} pointerEvents="none">
+          <StarBackground />
+        </View>
 
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: 'transparent' },
-            animation: 'slide_from_right',
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="event-detail"
-            options={{
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+          {isWeb && <WebHeader />}
+
+          <Stack
+            screenOptions={{
               headerShown: false,
+              contentStyle: { backgroundColor: 'transparent' },
               animation: 'slide_from_right',
-              contentStyle: { backgroundColor: colors.background.primary },
             }}
-          />
-        </Stack>
-      </SafeAreaView>
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="event-detail"
+              options={{
+                headerShown: false,
+                animation: 'slide_from_right',
+                contentStyle: { backgroundColor: colors.background.primary },
+              }}
+            />
+          </Stack>
+        </SafeAreaView>
+      </View>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  starWrap: {
+  // Dark base fills the entire viewport — this is the ground truth background
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.base,
+    ...(Platform.OS === 'web' ? { minHeight: '100vh' as any } : {}),
+  },
+  // Star dots sit on top of the dark base, behind all UI
+  starLayer: {
     position: 'absolute',
-    inset: 0 as any,
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
     zIndex: 0,
-    backgroundColor: colors.background.base,
+    ...(Platform.OS === 'web' ? { position: 'fixed' as any } : {}),
   },
-  root: {
+  safeArea: {
     flex: 1,
     backgroundColor: 'transparent',
+    zIndex: 1,
   },
 });

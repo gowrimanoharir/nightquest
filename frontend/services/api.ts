@@ -2,7 +2,13 @@
 
 import { ContextObject, Location } from '@/store/context';
 
-const BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+function normalizeBaseUrl(raw: string | undefined): string {
+  const url = (raw ?? 'http://localhost:8000').trim().replace(/\/$/, '');
+  // Ensure an absolute URL — add https:// if no protocol is present
+  if (!/^https?:\/\//i.test(url)) return `https://${url}`;
+  return url;
+}
+const BASE_URL = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_URL);
 
 // --- Shared types ---
 
