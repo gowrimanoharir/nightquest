@@ -53,45 +53,46 @@ export default function StarBackground() {
   );
 }
 
-// Pre-computed Tier 1 positions (20 stars across a 200px tile pattern)
+// Pre-computed Tier 1 positions (25 stars, boosted opacity so mix-blend-mode:screen
+// on web still renders them against dark backgrounds)
 const TIER1_DOTS = [
-  { top: '10%',  left: '10%',  opacity: 0.30 },
-  { top: '25%',  left: '35%',  opacity: 0.25 },
-  { top: '40%',  left: '15%',  opacity: 0.30 },
-  { top: '55%',  left: '55%',  opacity: 0.20 },
-  { top: '70%',  left: '25%',  opacity: 0.30 },
-  { top: '85%',  left: '85%',  opacity: 0.25 },
-  { top: '15%',  left: '65%',  opacity: 0.30 },
-  { top: '30%',  left: '80%',  opacity: 0.20 },
-  { top: '45%',  left: '70%',  opacity: 0.30 },
-  { top: '60%',  left: '5%',   opacity: 0.25 },
-  { top: '75%',  left: '75%',  opacity: 0.30 },
-  { top: '90%',  left: '40%',  opacity: 0.20 },
-  { top: '5%',   left: '90%',  opacity: 0.30 },
-  { top: '20%',  left: '50%',  opacity: 0.25 },
-  { top: '35%',  left: '30%',  opacity: 0.30 },
-  { top: '50%',  left: '60%',  opacity: 0.20 },
-  { top: '65%',  left: '10%',  opacity: 0.30 },
-  { top: '80%',  left: '95%',  opacity: 0.25 },
-  { top: '95%',  left: '5%',   opacity: 0.30 },
-  { top: '12%',  left: '42%',  opacity: 0.20 },
-  { top: '48%',  left: '88%',  opacity: 0.28 },
-  { top: '67%',  left: '48%',  opacity: 0.22 },
-  { top: '83%',  left: '22%',  opacity: 0.27 },
-  { top: '37%',  left: '92%',  opacity: 0.24 },
-  { top: '72%',  left: '62%',  opacity: 0.29 },
+  { top: '10%',  left: '10%',  opacity: 0.65 },
+  { top: '25%',  left: '35%',  opacity: 0.55 },
+  { top: '40%',  left: '15%',  opacity: 0.60 },
+  { top: '55%',  left: '55%',  opacity: 0.50 },
+  { top: '70%',  left: '25%',  opacity: 0.65 },
+  { top: '85%',  left: '85%',  opacity: 0.55 },
+  { top: '15%',  left: '65%',  opacity: 0.60 },
+  { top: '30%',  left: '80%',  opacity: 0.50 },
+  { top: '45%',  left: '70%',  opacity: 0.65 },
+  { top: '60%',  left: '5%',   opacity: 0.55 },
+  { top: '75%',  left: '75%',  opacity: 0.60 },
+  { top: '90%',  left: '40%',  opacity: 0.50 },
+  { top: '5%',   left: '90%',  opacity: 0.65 },
+  { top: '20%',  left: '50%',  opacity: 0.55 },
+  { top: '35%',  left: '30%',  opacity: 0.60 },
+  { top: '50%',  left: '60%',  opacity: 0.50 },
+  { top: '65%',  left: '10%',  opacity: 0.65 },
+  { top: '80%',  left: '95%',  opacity: 0.55 },
+  { top: '95%',  left: '5%',   opacity: 0.60 },
+  { top: '12%',  left: '42%',  opacity: 0.52 },
+  { top: '48%',  left: '88%',  opacity: 0.62 },
+  { top: '67%',  left: '48%',  opacity: 0.54 },
+  { top: '83%',  left: '22%',  opacity: 0.58 },
+  { top: '37%',  left: '92%',  opacity: 0.56 },
+  { top: '72%',  left: '62%',  opacity: 0.64 },
 ];
 
-// Pre-computed Tier 2 positions (8 stars across a 300px tile pattern)
+// Pre-computed Tier 2 positions (8 gold stars)
 const TIER2_DOTS = [
-  { top: '18%', left: '28%', opacity: 0.50 },
-  { top: '42%', left: '62%', opacity: 0.45 },
-  { top: '68%', left: '18%', opacity: 0.50 },
-  { top: '88%', left: '72%', opacity: 0.40 },
-  { top: '8%',  left: '82%', opacity: 0.50 },
-  { top: '52%', left: '38%', opacity: 0.45 },
-  { top: '78%', left: '48%', opacity: 0.50 },
-  { top: '32%', left: '92%', opacity: 0.40 },
+  { top: '18%', left: '28%', opacity: 0.80 },
+  { top: '42%', left: '62%', opacity: 0.75 },
+  { top: '68%', left: '18%', opacity: 0.80 },
+  { top: '88%', left: '72%', opacity: 0.70 },
+  { top: '8%',  left: '82%', opacity: 0.80 },
+  { top: '52%', left: '38%', opacity: 0.75 },
+  { top: '78%', left: '48%', opacity: 0.80 },
+  { top: '32%', left: '92%', opacity: 0.70 },
 ];
 
 const styles = StyleSheet.create({

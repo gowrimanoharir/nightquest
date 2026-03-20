@@ -128,25 +128,32 @@ export default function ExploreScreen() {
     </View>
   );
 
-  const filterPills = (
-    <ScrollView
-      horizontal={!isTabletOrWeb}
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={[styles.filterRow, isTabletOrWeb && styles.filterRowWrap]}
-      style={!isTabletOrWeb ? styles.filterScroll : undefined}
+  const pillItems = FILTER_OPTIONS.map((opt) => (
+    <Pressable
+      key={opt.id}
+      style={[styles.filterPill, activeFilter === opt.id && styles.filterPillActive]}
+      onPress={() => setActiveFilter(opt.id)}
     >
-      {FILTER_OPTIONS.map((opt) => (
-        <Pressable
-          key={opt.id}
-          style={[styles.filterPill, activeFilter === opt.id && styles.filterPillActive]}
-          onPress={() => setActiveFilter(opt.id)}
-        >
-          <Text style={styles.filterPillIcon}>{opt.icon}</Text>
-          <Text style={[styles.filterPillText, activeFilter === opt.id && styles.filterPillTextActive]}>
-            {opt.label}
-          </Text>
-        </Pressable>
-      ))}
+      <Text style={styles.filterPillIcon}>{opt.icon}</Text>
+      <Text style={[styles.filterPillText, activeFilter === opt.id && styles.filterPillTextActive]}>
+        {opt.label}
+      </Text>
+    </Pressable>
+  ));
+
+  // Tablet/web: plain View so it doesn't consume flex height like a vertical ScrollView
+  const filterPills = isTabletOrWeb ? (
+    <View style={[styles.filterRow, styles.filterRowWrap, styles.filterRowWeb]}>
+      {pillItems}
+    </View>
+  ) : (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.filterRow}
+      style={styles.filterScroll}
+    >
+      {pillItems}
     </ScrollView>
   );
 
@@ -232,7 +239,7 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background.base,
+    backgroundColor: colors.background.primary,
   },
   header: {
     flexDirection: 'row',
@@ -302,6 +309,9 @@ const styles = StyleSheet.create({
   },
   filterRowWrap: {
     flexWrap: 'wrap',
+  },
+  filterRowWeb: {
+    marginBottom: spacing['3xl'],
   },
   filterPill: {
     flexDirection: 'row',

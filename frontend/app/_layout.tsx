@@ -163,7 +163,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.base,
     ...(Platform.OS === 'web' ? { minHeight: '100vh' as any } : {}),
   },
-  // Star dots sit on top of the dark base, behind all UI
+  // Star dots: on native, absolute behind UI; on web, fixed overlay with
+  // mix-blend-mode:screen so black areas vanish and only bright dots show
   starLayer: {
     position: 'absolute',
     top: 0,
@@ -171,7 +172,12 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 0,
-    ...(Platform.OS === 'web' ? { position: 'fixed' as any } : {}),
+    ...(Platform.OS === 'web' ? {
+      position: 'fixed' as any,
+      zIndex: 9999,
+      mixBlendMode: 'screen' as any,
+      pointerEvents: 'none' as any,
+    } : {}),
   },
   safeArea: {
     flex: 1,

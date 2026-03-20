@@ -63,19 +63,19 @@ export default function EventCard({ event, onPress, onAskAI }: EventCardProps) {
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, isPast && styles.cardDimmed, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.card, isPast && styles.cardPast, pressed && styles.cardPressed]}
       onPress={() => onPress(event)}
     >
       {/* Date box */}
-      <View style={styles.dateBox}>
-        <Text style={styles.dateMonth}>{month}</Text>
-        <Text style={styles.dateDay}>{day}</Text>
+      <View style={[styles.dateBox, isPast && styles.dateBoxPast]}>
+        <Text style={[styles.dateMonth, isPast && styles.datePast]}>{month}</Text>
+        <Text style={[styles.dateDay, isPast && styles.datePast]}>{day}</Text>
       </View>
 
       {/* Content */}
       <View style={styles.content}>
         <View style={styles.topRow}>
-          <Text style={styles.category}>
+          <Text style={[styles.category, isPast && styles.categoryPast]}>
             {EVENT_ICONS[event.type]}  {EVENT_LABELS[event.type].toUpperCase()}
           </Text>
           <View style={[styles.badge, styles[`badge_${badge}`]]}>
@@ -85,10 +85,12 @@ export default function EventCard({ event, onPress, onAskAI }: EventCardProps) {
           </View>
         </View>
 
-        <Text style={styles.name} numberOfLines={1}>{event.name}</Text>
+        <Text style={[styles.name, isPast && styles.namePast]} numberOfLines={1}>{event.name}</Text>
 
         {event.description ? (
-          <Text style={styles.description} numberOfLines={2}>{event.description}</Text>
+          <Text style={[styles.description, isPast && styles.descriptionPast]} numberOfLines={2}>
+            {event.description}
+          </Text>
         ) : null}
 
         {/* Not-visible AI nudge per style guide */}
@@ -114,8 +116,11 @@ const styles = StyleSheet.create({
     padding: spacing['3xl'],
     marginBottom: spacing.xl,
   },
-  cardDimmed: {
-    opacity: 0.5,
+  // Past events: muted card with dimmed border, noticeably different from active
+  cardPast: {
+    backgroundColor: 'rgba(17, 13, 10, 0.5)',
+    borderColor: 'rgba(255,248,240,0.06)',
+    opacity: 0.55,
   },
   cardPressed: {
     backgroundColor: colors.background.elevated,
@@ -132,6 +137,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
+  dateBoxPast: {
+    backgroundColor: 'rgba(26, 19, 16, 0.5)',
+  },
   dateMonth: {
     ...typography.scale.caption.small,
     color: colors.accent.secondary,
@@ -141,6 +149,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text.primary,
     lineHeight: 24,
+  },
+  datePast: {
+    color: colors.text.secondary,
   },
 
   // Content
@@ -159,14 +170,23 @@ const styles = StyleSheet.create({
     color: colors.celestial.glow,
     flex: 1,
   },
+  categoryPast: {
+    color: colors.text.secondary,
+  },
   name: {
     ...typography.scale.heading.small,
     fontSize: 16,
     color: colors.text.primary,
   },
+  namePast: {
+    color: colors.text.secondary,
+  },
   description: {
     ...typography.scale.body.small,
     color: colors.text.secondary,
+  },
+  descriptionPast: {
+    color: colors.text.disabled,
   },
 
   // Badges

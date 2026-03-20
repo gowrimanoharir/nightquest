@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background.base,
+    backgroundColor: colors.background.primary,
     padding: spacing['6xl'],
   },
   heading: {
