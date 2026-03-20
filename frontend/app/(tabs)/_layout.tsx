@@ -1,10 +1,10 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
-import theme from '@/constants/theme';
+import { colors, spacing, borderRadius, typography, breakpoints, layout } from '@/constants/theme';
 import { useContextStore } from '@/store/context';
 
-const { colors, spacing, borderRadius, typography, breakpoints, layout } = theme;
+
 
 function ExploreIcon({ focused }: { focused: boolean }) {
   return (

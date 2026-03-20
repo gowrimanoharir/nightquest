@@ -1,0 +1,41 @@
+{
+  "events": [
+    {
+      "name": "Perseid Meteor Shower",
+      "date": "2026-08-12",
+      "type": "meteor_shower",
+      "description": "One of the best annual meteor showers, producing up to 100 meteors per hour at peak."
+    },
+    {
+      "name": "Total Lunar Eclipse",
+      "date": "2026-09-07",
+      "type": "eclipse",
+      "description": "The Moon passes completely through Earth's umbral shadow, turning a deep red."
+    },
+    {
+      "name": "Full Moon",
+      "date": "2026-08-03",
+      "type": "moon",
+      "description": "The Moon is fully illuminated as seen from Earth."
+    },
+    {
+      "name": "Mars at Opposition",
+      "date": "2026-11-19",
+      "type": "planet",
+      "description": "Mars reaches opposition, its closest approach to Earth this year."
+    },
+    {
+      "name": "Milky Way Season Peak",
+      "date": "2026-07-15",
+      "type": "milky_way",
+      "description": "The galactic core is at its highest point; best conditions for dark-sky photography."
+    },
+    {
+      "name": "Geminid Meteor Shower",
+      "date": "2026-12-14",
+      "type": "meteor_shower",
+      "description": "Prolific shower producing up to 120 multi-coloured meteors per hour."
+    }
+  ],
+  "generated_at": "2026-03-19T00:00:00Z"
+}

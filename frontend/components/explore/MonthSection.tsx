@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import theme from '@/constants/theme';
+import { colors, spacing, typography } from '@/constants/theme';
 import EventCard from './EventCard';
 import { CelestialEvent } from '@/services/api';
 
-const { colors, spacing, typography } = theme;
+
 
 interface MonthSectionProps {
   month: string;         // e.g. "August 2026"

@@ -149,6 +149,3 @@ export const layout = {
   },
 } as const;
 
-// Single export for ergonomic usage: import { theme } from '@/constants/theme'
-const theme = { colors, typography, spacing, borderRadius, shadows, breakpoints, layout } as const;
-export default theme;

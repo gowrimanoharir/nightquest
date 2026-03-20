@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import theme from '@/constants/theme';
+import { colors, typography, spacing } from '@/constants/theme';
 
-const { colors, typography, spacing } = theme;
+
 
 // Phase 3A builds this screen. Placeholder until then.
 export default function StargazeScreen() {

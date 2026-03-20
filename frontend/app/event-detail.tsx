@@ -3,9 +3,9 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import EventDetail from '@/components/explore/EventDetail';
 import { CelestialEvent } from '@/services/api';
-import theme from '@/constants/theme';
+import { colors, typography } from '@/constants/theme';
 
-const { colors, typography } = theme;
+
 
 export default function EventDetailRoute() {
   const { data } = useLocalSearchParams<{ data: string }>();

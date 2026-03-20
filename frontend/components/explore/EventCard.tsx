@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import theme from '@/constants/theme';
+import { colors, spacing, borderRadius, typography } from '@/constants/theme';
 import { CelestialEvent, EventType } from '@/services/api';
 
-const { colors, spacing, borderRadius, typography } = theme;
+
 
 const EVENT_ICONS: Record<EventType, string> = {
   meteor_shower: '☄️',

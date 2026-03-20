@@ -11,9 +11,9 @@ import {
 } from 'react-native';
 import * as ExpoLocation from 'expo-location';
 import { useContextStore, Location } from '@/store/context';
-import theme from '@/constants/theme';
+import { colors, spacing, borderRadius, typography } from '@/constants/theme';
 
-const { colors, spacing, borderRadius, typography } = theme;
+
 
 interface LocationPickerProps {
   /** When true, renders only the tappable header chip — sheet opens on press */
@@ -180,7 +180,7 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
 
           <ScrollView style={styles.results} keyboardShouldPersistTaps="handled">
             {results.length === 0 && query.length >= 2 && !searching && (
-              <Text style={styles.noResults}>No results for "{query}"</Text>
+              <Text style={styles.noResults}>No results for &quot;{query}&quot;</Text>
             )}
             {results.map((loc, i) => (
               <Pressable key={i} style={styles.resultItem} onPress={() => selectLocation(loc)}>

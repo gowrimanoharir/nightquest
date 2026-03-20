@@ -9,14 +9,14 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import theme from '@/constants/theme';
+import { colors, spacing, borderRadius, typography, breakpoints } from '@/constants/theme';
 import { useContextStore } from '@/store/context';
 import { useAutoDetectLocation } from '@/components/shared/LocationPicker';
 import LocationPicker from '@/components/shared/LocationPicker';
 import MonthSection from '@/components/explore/MonthSection';
 import { CelestialEvent, EventType, fetchEvents } from '@/services/api';
 
-const { colors, spacing, borderRadius, typography, breakpoints } = theme;
+
 
 type FilterOption = 'all' | EventType;
 

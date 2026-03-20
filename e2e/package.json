@@ -1,0 +1,26 @@
+{
+  "name": "nightquest-e2e",
+  "version": "1.0.0",
+  "description": "Playwright e2e tests for NightQuest — mobile, tablet, and web viewports",
+  "scripts": {
+    "test": "playwright test",
+    "test:mobile": "playwright test --project=mobile",
+    "test:tablet": "playwright test --project=tablet",
+    "test:web": "playwright test --project=web",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@types/node": "^25.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "eslint": "^10.0.3",
+    "eslint-plugin-playwright": "^2.10.1",
+    "typescript": "^5.9.3"
+  }
+}

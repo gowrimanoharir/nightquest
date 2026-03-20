@@ -8,11 +8,11 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import theme from '@/constants/theme';
+import { colors, spacing, borderRadius, typography, breakpoints } from '@/constants/theme';
 import { CelestialEvent, EventType } from '@/services/api';
 import { useContextStore } from '@/store/context';
 
-const { colors, spacing, borderRadius, typography, breakpoints } = theme;
+
 
 const EVENT_ICONS: Record<EventType, string> = {
   meteor_shower: '☄️',

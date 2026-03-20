@@ -14,9 +14,9 @@ import StarBackground from '@/components/shared/StarBackground';
 import LocationPicker from '@/components/shared/LocationPicker';
 import { useAutoDetectLocation } from '@/components/shared/LocationPicker';
 import { useContextStore } from '@/store/context';
-import theme from '@/constants/theme';
+import { colors, spacing, typography, breakpoints } from '@/constants/theme';
 
-const { colors, spacing, typography, breakpoints } = theme;
+
 
 function WebHeader() {
   const router = useRouter();
