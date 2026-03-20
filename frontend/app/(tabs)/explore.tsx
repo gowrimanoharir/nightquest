@@ -232,7 +232,7 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: colors.background.base,
   },
   header: {
     flexDirection: 'row',

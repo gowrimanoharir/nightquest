@@ -146,7 +146,7 @@ export default function RootLayout() {
             options={{
               headerShown: false,
               animation: 'slide_from_right',
-              contentStyle: { backgroundColor: 'transparent' },
+              contentStyle: { backgroundColor: colors.background.primary },
             }}
           />
           </Stack>

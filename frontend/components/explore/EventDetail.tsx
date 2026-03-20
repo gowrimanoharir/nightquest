@@ -194,7 +194,7 @@ export default function EventDetail({ event }: EventDetailProps) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: colors.background.primary,
   },
   header: {
     flexDirection: 'row',
