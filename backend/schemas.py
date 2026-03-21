@@ -34,6 +34,10 @@ class DarkSpotSite(BaseModel):
     website: Optional[str] = None
     country: Optional[str] = None
     state: Optional[str] = None  # or region
+    # Phase 3A: enriched by /api/spots — not present in raw dataset
+    distance: Optional[float] = None   # km from user location
+    score: Optional[float] = None      # composite ranking score 0–100
+    rank: Optional[int] = None         # 1-based position in ranked list
 
 
 # --- Visibility conditions (8 factors) ---

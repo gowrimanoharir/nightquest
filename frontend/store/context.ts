@@ -27,6 +27,10 @@ export interface DarkSpotSite {
   website?: string;
   country?: string;
   state?: string;
+  // Phase 3A: enriched fields from /api/spots
+  distance?: number;    // km from user location
+  score?: number;       // composite ranking score 0–100
+  rank?: number;        // 1-based position
 }
 
 export interface ActiveSpot {

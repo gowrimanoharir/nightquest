@@ -1,0 +1,43 @@
+{
+  "spots": [
+    {
+      "name": "McDonald Observatory",
+      "lat": 30.67,
+      "lon": -104.02,
+      "bortle_estimate": 2,
+      "certified": true,
+      "website": "https://mcdonaldobservatory.org",
+      "country": "USA",
+      "state": "Texas",
+      "distance": 143.2,
+      "score": 88.5,
+      "rank": 1
+    },
+    {
+      "name": "Big Bend National Park",
+      "lat": 29.25,
+      "lon": -103.25,
+      "bortle_estimate": 1,
+      "certified": true,
+      "website": "https://www.nps.gov/bibe",
+      "country": "USA",
+      "state": "Texas",
+      "distance": 289.1,
+      "score": 78.2,
+      "rank": 2
+    },
+    {
+      "name": "Enchanted Rock State Natural Area",
+      "lat": 30.5,
+      "lon": -98.82,
+      "bortle_estimate": 4,
+      "certified": false,
+      "website": null,
+      "country": "USA",
+      "state": "Texas",
+      "distance": 101.4,
+      "score": 61.0,
+      "rank": 3
+    }
+  ]
+}

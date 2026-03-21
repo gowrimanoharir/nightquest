@@ -1,6 +1,6 @@
 // All API calls go through this module. Components never call fetch directly.
 
-import { ContextObject, Location } from '@/store/context';
+import { ContextObject, DarkSpotSite, Location } from '@/store/context';
 
 function normalizeBaseUrl(raw: string | undefined): string {
   const url = (raw ?? 'http://localhost:8000').trim().replace(/\/$/, '');
@@ -24,6 +24,17 @@ export interface CelestialEvent {
 export interface EventsResponse {
   events: CelestialEvent[];
   generated_at?: string;
+}
+
+export interface SpotsRequest {
+  location: Location;
+  date: string;
+  event_type?: string;
+  distance_km?: number;
+}
+
+export interface SpotsResponse {
+  spots: DarkSpotSite[];
 }
 
 export interface ChatMessage {
@@ -79,6 +90,20 @@ async function get<T>(path: string, params?: Record<string, string>): Promise<T>
 
 export async function fetchEvents(location: Location, year: number): Promise<EventsResponse> {
   return post<EventsResponse>('/api/events', { location, year, filters: [] });
+}
+
+export async function fetchSpots(
+  location: Location,
+  date: string,
+  eventType?: string,
+  distanceKm?: number,
+): Promise<SpotsResponse> {
+  return post<SpotsResponse>('/api/spots', {
+    location,
+    date,
+    event_type: eventType,
+    distance_km: distanceKm,
+  });
 }
 
 export async function fetchChat(req: ChatRequest): Promise<ChatResponse> {
