@@ -34,6 +34,7 @@ async def post_events(request: EventsRequest) -> EventsResponse:
     """
     events_raw = get_events_for_year(
         year=request.year,
+        latitude=request.location.lat,
         filters=request.filters if request.filters else None,
     )
     events = [

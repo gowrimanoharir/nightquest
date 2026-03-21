@@ -118,23 +118,54 @@ def get_meteor_showers_for_year(year: int) -> list[dict[str, Any]]:
     return events
 
 
-def get_milky_way_windows_for_year(year: int) -> list[dict[str, Any]]:
-    """Return best Milky Way visibility windows (Northern Hemisphere: summer core visibility)."""
-    # Galactic center is best visible roughly Apr–Sep in N hemisphere evenings.
-    events = [
-        {
-            "name": "Milky Way Core Season (Northern Hemisphere)",
-            "date": f"{year}-06-15",
+def get_milky_way_windows_for_year(year: int, latitude: float) -> list[dict[str, Any]]:
+    """
+    Return Milky Way core visibility events matched to the observer's hemisphere.
+
+    Galactic center (Sgr A*, dec ≈ −29°) seasonal windows:
+      Northern (lat > 0): visible Mar–Oct, peak Jun–Sep (core transits in south)
+      Southern (lat < 0): visible Feb–Oct, peak May–Aug; center passes near zenith,
+                          providing the most prominent views on Earth
+    """
+    is_southern = latitude < 0
+    hemisphere = "Southern" if is_southern else "Northern"
+
+    if is_southern:
+        # Feb–Oct window; peak May–Aug when center transits near zenith
+        windows = [
+            (2, "opens",   "Galactic center rises in the east after midnight; Southern season opens."),
+            (4, "rising",  "Core climbs higher each night; excellent pre-midnight viewing begins."),
+            (5, "peak",    f"Peak season. Galactic center transits near zenith at midnight — "
+                           f"Southern latitudes enjoy the most dramatic views on Earth."),
+            (7, "peak",    "Core still near zenith at dusk; long evening windows for dark-sky photography."),
+            (9, "late",    "Galactic center sets in the southwest; last wide evening window of the year."),
+        ]
+    else:
+        # Mar–Oct window; peak Jun–Sep when core transits high in south
+        windows = [
+            (3, "opens",   "Galactic center rises before dawn; Northern season opens."),
+            (5, "rising",  "Core clears the horizon earlier each night; good pre-midnight viewing."),
+            (7, "peak",    f"Peak season. Galactic core transits high in the south around midnight — "
+                           f"best dark-sky opportunity of the year."),
+            (9, "late",    "Core sets in the southwest; last strong evening window before season ends."),
+            (10, "closing", "Galactic center visible low in the west after dark. Season closing."),
+        ]
+
+    events = []
+    for month, phase, desc in windows:
+        label_phase = {
+            "opens":   "Season Opens",
+            "rising":  "Core Rising",
+            "peak":    "Core Peak",
+            "late":    "Late Season",
+            "closing": "Season Closing",
+        }[phase]
+        events.append({
+            "name": f"Milky Way {label_phase} ({hemisphere} Hemisphere)",
+            "date": f"{year}-{month:02d}-15",
             "type": "milky_way",
-            "description": "Galactic center visible in evening; best dark-sky season for Milky Way.",
-        },
-        {
-            "name": "Milky Way Core Season (Southern Hemisphere)",
-            "date": f"{year}-01-15",
-            "type": "milky_way",
-            "description": "Galactic center high in southern sky; excellent dark-sky viewing.",
-        },
-    ]
+            "description": desc,
+        })
     return events
 
 
@@ -152,10 +183,11 @@ def get_planet_events_for_year(year: int) -> list[dict[str, Any]]:
 
 def astronomy_tool(
     year: int,
+    latitude: float = 45.0,
     event_types: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """
-    Get celestial events for a given year. Optionally filter by event_type.
+    Get celestial events for a given year and observer latitude. Optionally filter by event_type.
     event_types: optional list of 'meteor_shower', 'eclipse', 'moon', 'planet', 'milky_way'.
     Returns list of events with name, date (ISO), type, description.
     """
@@ -164,7 +196,7 @@ def astronomy_tool(
     all_events.extend(get_solar_eclipses_for_year(year))
     all_events.extend(get_lunar_eclipses_for_year(year))
     all_events.extend(get_meteor_showers_for_year(year))
-    all_events.extend(get_milky_way_windows_for_year(year))
+    all_events.extend(get_milky_way_windows_for_year(year, latitude))
     all_events.extend(get_planet_events_for_year(year))
 
     if event_types:
@@ -177,10 +209,11 @@ def astronomy_tool(
 
 def get_events_for_year(
     year: int,
+    latitude: float = 45.0,
     filters: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """
     Structured helper for POST /api/events: same as astronomy_tool but always
     returns list of events with name, date, type, description.
     """
-    return astronomy_tool(year=year, event_types=filters or None)
+    return astronomy_tool(year=year, latitude=latitude, event_types=filters or None)
