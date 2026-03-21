@@ -300,14 +300,16 @@ const styles = StyleSheet.create({
   // Filter pills
   filterScroll: {
     flexShrink: 0,
-    height: 52,
+    flexGrow: 0,
+    maxHeight: 52,
+    overflow: 'hidden',
     marginBottom: spacing['3xl'],
   },
   filterRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing['3xl'],
-    paddingBottom: spacing['3xl'],
   },
   filterRowWrap: {
     flexWrap: 'wrap',
@@ -318,6 +320,7 @@ const styles = StyleSheet.create({
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
