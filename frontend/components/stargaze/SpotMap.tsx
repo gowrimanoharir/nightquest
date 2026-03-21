@@ -575,10 +575,128 @@ const webStyles = StyleSheet.create({
 // --- Main export ---
 export default function SpotMap(props: SpotMapProps) {
   const { width } = useWindowDimensions();
-  const isWeb = Platform.OS === 'web' || width >= breakpoints.web;
 
-  if (isWeb) {
-    return <WebMapPlaceholder {...props} />;
+  // Native app → react-native-maps
+  if (Platform.OS !== 'web') {
+    return <NativeMap {...props} />;
   }
-  return <NativeMap {...props} />;
+
+  // Mobile web (narrow browser) → stacked layout
+  if (width < breakpoints.web) {
+    return <MobileWebMap {...props} />;
+  }
+
+  // Desktop web → side-by-side
+  return <WebMapPlaceholder {...props} />;
 }
+
+// --- Mobile web stacked layout ---
+function MobileWebMap({ spots, userLocation, onViewDetails }: SpotMapProps) {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const positioned = spotsToMapPositions(spots, userLocation.lat, userLocation.lon);
+  const userPos = userMapPosition(spots, userLocation.lat, userLocation.lon);
+  const mapSize = 240;
+
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={mobileWebStyles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Compact dot map */}
+      <View style={mobileWebStyles.mapWrap}>
+        <Text style={mobileWebStyles.mapLabel}>Dark Sky Map</Text>
+        <View style={[mobileWebStyles.dotField, { width: mapSize, height: mapSize }]}>
+          <View
+            style={[
+              webStyles.userDot,
+              { left: (userPos.px / MAP_SIZE) * mapSize - 6,
+                top: (userPos.py / MAP_SIZE) * mapSize - 6 },
+            ]}
+          />
+          {positioned.map((spot, i) => (
+            <Pressable
+              key={spot.name}
+              style={[
+                webStyles.spotDot,
+                selectedIdx === i && webStyles.spotDotSelected,
+                {
+                  left: (spot.px / MAP_SIZE) * mapSize - 14,
+                  top: (spot.py / MAP_SIZE) * mapSize - 14,
+                },
+              ]}
+              onPress={() => setSelectedIdx(i === selectedIdx ? null : i)}
+            >
+              <Text style={[
+                webStyles.spotDotText,
+                selectedIdx === i && webStyles.spotDotTextSelected,
+              ]}>
+                {spot.rank ?? i + 1}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={webStyles.mapLegend}>
+          <View style={webStyles.legendRow}>
+            <View style={webStyles.userDotSmall} />
+            <Text style={webStyles.legendText}>Your location</Text>
+          </View>
+          <View style={webStyles.legendRow}>
+            <View style={webStyles.pinDotSmall} />
+            <Text style={webStyles.legendText}>Dark sky spot</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Scrollable spot list below map */}
+      <View style={mobileWebStyles.list}>
+        {spots.map((spot, i) => (
+          <SpotCard
+            key={spot.name + spot.lat}
+            spot={spot}
+            onPress={() => setSelectedIdx(i === selectedIdx ? null : i)}
+            showViewDetails
+            onViewDetails={onViewDetails}
+          />
+        ))}
+        {spots.length === 0 && (
+          <Text style={webStyles.emptyText}>No spots found in this area.</Text>
+        )}
+      </View>
+    </ScrollView>
+  );
+}
+
+const mobileWebStyles = StyleSheet.create({
+  content: {
+    padding: spacing['3xl'],
+    gap: spacing['4xl'],
+    paddingBottom: spacing['7xl'],
+  },
+  mapWrap: {
+    alignItems: 'center',
+    backgroundColor: colors.background.surface,
+    borderRadius: borderRadius['3xl'],
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    padding: spacing['3xl'],
+    gap: spacing['3xl'],
+  },
+  mapLabel: {
+    ...typography.scale.label.large,
+    color: colors.text.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  dotField: {
+    backgroundColor: colors.background.elevated,
+    borderRadius: borderRadius['2xl'],
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  list: {
+    gap: spacing.xl,
+  },
+});

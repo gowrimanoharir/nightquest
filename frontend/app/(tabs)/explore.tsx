@@ -299,6 +299,8 @@ const styles = StyleSheet.create({
 
   // Filter pills
   filterScroll: {
+    flexShrink: 0,
+    height: 52,
     marginBottom: spacing['3xl'],
   },
   filterRow: {

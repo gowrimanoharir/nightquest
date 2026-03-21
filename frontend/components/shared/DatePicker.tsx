@@ -54,7 +54,6 @@ export default function DatePicker({ value, onChange }: DatePickerProps) {
 
         <View style={styles.dateBox}>
           <Text style={styles.dateText}>{formatDisplay(value)}</Text>
-          <Text style={styles.isoText}>{value}</Text>
         </View>
 
         <Pressable
