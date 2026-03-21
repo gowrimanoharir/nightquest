@@ -1,10 +1,11 @@
 /**
- * SpotMap — full-screen map with numbered spot pins and list toggle.
+ * SpotMap — full-screen map with numbered spot pins and list.
  *
- * Mobile/Tablet: react-native-maps with animated user-location dot,
+ * Native (iOS/Android): react-native-maps with animated user-location dot,
  *   numbered spot pins, list-mode toggle, slide-up summary card on pin tap.
- * Web: side-by-side layout (map placeholder left, ranked list right).
- *   react-native-maps is not supported on web; we render a styled fallback.
+ * Web desktop (≥ breakpoints.web): Leaflet map left + ranked list right.
+ * Web mobile (< breakpoints.web): Leaflet map top + scrollable list below,
+ *   slide-up summary card on pin tap.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -20,6 +21,7 @@ import {
 import { colors, spacing, borderRadius, typography, breakpoints } from '@/constants/theme';
 import { DarkSpotSite, Location } from '@/store/context';
 import SpotCard from './SpotCard';
+import LeafletMapView from './LeafletMapView';
 
 // Conditionally import react-native-maps (not supported on web)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -345,112 +347,27 @@ const darkMapStyle = [
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
 ];
 
-// --- Web fallback: relative position spots by lat/lon ---
-const MAP_SIZE = 280; // px
-const MAP_PAD = 24;   // px padding inside map area
+// ── Web layouts (Leaflet-based) ────────────────────────────────────────────
 
-function spotsToMapPositions(
-  spots: DarkSpotSite[],
-  userLat: number,
-  userLon: number,
-): (DarkSpotSite & { px: number; py: number })[] {
-  if (spots.length === 0) return [];
-
-  // Collect all lat/lon including user location
-  const allLats = [userLat, ...spots.map((s) => s.lat)];
-  const allLons = [userLon, ...spots.map((s) => s.lon)];
-  const minLat = Math.min(...allLats);
-  const maxLat = Math.max(...allLats);
-  const minLon = Math.min(...allLons);
-  const maxLon = Math.max(...allLons);
-  const latRange = maxLat - minLat || 0.1;
-  const lonRange = maxLon - minLon || 0.1;
-  const inner = MAP_SIZE - MAP_PAD * 2;
-
-  return spots.map((s) => ({
-    ...s,
-    // x: left→right as lon increases; y: top→bottom as lat decreases
-    px: ((s.lon - minLon) / lonRange) * inner + MAP_PAD,
-    py: ((maxLat - s.lat) / latRange) * inner + MAP_PAD,
-  }));
-}
-
-function userMapPosition(
-  spots: DarkSpotSite[],
-  userLat: number,
-  userLon: number,
-): { px: number; py: number } {
-  const allLats = [userLat, ...spots.map((s) => s.lat)];
-  const allLons = [userLon, ...spots.map((s) => s.lon)];
-  const minLat = Math.min(...allLats);
-  const maxLat = Math.max(...allLats);
-  const minLon = Math.min(...allLons);
-  const maxLon = Math.max(...allLons);
-  const latRange = maxLat - minLat || 0.1;
-  const lonRange = maxLon - minLon || 0.1;
-  const inner = MAP_SIZE - MAP_PAD * 2;
-  return {
-    px: ((userLon - minLon) / lonRange) * inner + MAP_PAD,
-    py: ((maxLat - userLat) / latRange) * inner + MAP_PAD,
-  };
-}
-
-function WebMapPlaceholder({ spots, userLocation, onViewDetails }: SpotMapProps) {
+// Desktop: Leaflet map left (40%) + ranked list right (60%)
+function DesktopWebLayout({ spots, userLocation, onViewDetails }: SpotMapProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const positioned = spotsToMapPositions(spots, userLocation.lat, userLocation.lon);
-  const userPos = userMapPosition(spots, userLocation.lat, userLocation.lon);
 
   return (
     <View style={webStyles.container}>
-      {/* Left: relative position map */}
-      <View style={webStyles.mapArea}>
-        <Text style={webStyles.mapLabel}>Dark Sky Map</Text>
-
-        <View style={[webStyles.dotField, { width: MAP_SIZE, height: MAP_SIZE }]}>
-          {/* User location dot */}
-          <View
-            style={[
-              webStyles.userDot,
-              { left: userPos.px - 6, top: userPos.py - 6 },
-            ]}
-          />
-
-          {/* Spot dots */}
-          {positioned.map((spot, i) => (
-            <Pressable
-              key={spot.name}
-              style={[
-                webStyles.spotDot,
-                selectedIdx === i && webStyles.spotDotSelected,
-                { left: spot.px - 14, top: spot.py - 14 },
-              ]}
-              onPress={() => setSelectedIdx(i === selectedIdx ? null : i)}
-            >
-              <Text style={[
-                webStyles.spotDotText,
-                selectedIdx === i && webStyles.spotDotTextSelected,
-              ]}>
-                {spot.rank ?? i + 1}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <View style={webStyles.mapLegend}>
-          <View style={webStyles.legendRow}>
-            <View style={webStyles.userDotSmall} />
-            <Text style={webStyles.legendText}>Your location</Text>
-          </View>
-          <View style={webStyles.legendRow}>
-            <View style={webStyles.pinDotSmall} />
-            <Text style={webStyles.legendText}>Dark sky spot</Text>
-          </View>
-        </View>
+      {/* Left pane — Leaflet map */}
+      <View style={webStyles.mapPane}>
+        <LeafletMapView
+          spots={spots}
+          userLocation={userLocation}
+          selectedIdx={selectedIdx}
+          onSelectIdx={setSelectedIdx}
+        />
       </View>
 
-      {/* Right: ranked list */}
+      {/* Right pane — ranked spot list */}
       <ScrollView
-        style={webStyles.listScroll}
+        style={webStyles.listPane}
         contentContainerStyle={webStyles.listContent}
         showsVerticalScrollIndicator={false}
       >
@@ -471,95 +388,69 @@ function WebMapPlaceholder({ spots, userLocation, onViewDetails }: SpotMapProps)
   );
 }
 
+// Mobile web: Leaflet map on top (300 px) + slide-up card on pin tap + list below
+function MobileWebLayout({ spots, userLocation, onViewDetails }: SpotMapProps) {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const selectedSpot = selectedIdx !== null ? spots[selectedIdx] : null;
+
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={mobileStyles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Map area with slide-up card overlay on pin tap */}
+      <View style={mobileStyles.mapWrap}>
+        <LeafletMapView
+          spots={spots}
+          userLocation={userLocation}
+          selectedIdx={selectedIdx}
+          onSelectIdx={setSelectedIdx}
+        />
+        {selectedSpot && (
+          <SummaryCard
+            spot={selectedSpot}
+            onClose={() => setSelectedIdx(null)}
+            onViewDetails={onViewDetails}
+          />
+        )}
+      </View>
+
+      {/* Scrollable spot list below map */}
+      <View style={mobileStyles.list}>
+        {spots.map((spot, i) => (
+          <SpotCard
+            key={spot.name + spot.lat}
+            spot={spot}
+            onPress={() => setSelectedIdx(i === selectedIdx ? null : i)}
+            showViewDetails
+            onViewDetails={onViewDetails}
+          />
+        ))}
+        {spots.length === 0 && (
+          <Text style={mobileStyles.emptyText}>No spots found in this area.</Text>
+        )}
+      </View>
+    </ScrollView>
+  );
+}
+
 const webStyles = StyleSheet.create({
-  container: { flex: 1, flexDirection: 'row', gap: spacing['6xl'], padding: spacing['3xl'] },
-  mapArea: {
+  container: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: spacing['6xl'],
+    padding: spacing['3xl'],
+  },
+  mapPane: {
     flex: 2,
     minWidth: 300,
-    backgroundColor: colors.background.surface,
     borderRadius: borderRadius['3xl'],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    alignItems: 'center',
-    padding: spacing['3xl'],
-    gap: spacing['3xl'],
-  },
-  mapLabel: {
-    ...typography.scale.label.large,
-    color: colors.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  dotField: {
-    backgroundColor: colors.background.elevated,
-    borderRadius: borderRadius['2xl'],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    position: 'relative',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
-  userDot: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.accent.primary,
-    borderWidth: 2,
-    borderColor: colors.text.primary,
-  },
-  spotDot: {
-    position: 'absolute',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.background.surface,
-    borderWidth: 2,
-    borderColor: colors.accent.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spotDotSelected: {
-    backgroundColor: colors.accent.primary,
-  },
-  spotDotText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.accent.primary,
-  },
-  spotDotTextSelected: {
-    color: colors.text.inverse,
-  },
-  mapLegend: {
-    gap: spacing.sm,
-    alignSelf: 'flex-start',
-  },
-  legendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  userDotSmall: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.accent.primary,
-    borderWidth: 1.5,
-    borderColor: colors.text.primary,
-  },
-  pinDotSmall: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.background.surface,
-    borderWidth: 1.5,
-    borderColor: colors.accent.primary,
-  },
-  legendText: {
-    ...typography.scale.caption.regular,
-    fontSize: 11,
-    color: colors.text.secondary,
-  },
-  listScroll: { flex: 3 },
+  listPane: { flex: 3 },
   listContent: {
     gap: spacing.xl,
     paddingBottom: spacing['7xl'],
@@ -572,131 +463,40 @@ const webStyles = StyleSheet.create({
   },
 });
 
-// --- Main export ---
-export default function SpotMap(props: SpotMapProps) {
-  const { width } = useWindowDimensions();
-
-  // Native app → react-native-maps
-  if (Platform.OS !== 'web') {
-    return <NativeMap {...props} />;
-  }
-
-  // Mobile web (narrow browser) → stacked layout
-  if (width < breakpoints.web) {
-    return <MobileWebMap {...props} />;
-  }
-
-  // Desktop web → side-by-side
-  return <WebMapPlaceholder {...props} />;
-}
-
-// --- Mobile web stacked layout ---
-function MobileWebMap({ spots, userLocation, onViewDetails }: SpotMapProps) {
-  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const positioned = spotsToMapPositions(spots, userLocation.lat, userLocation.lon);
-  const userPos = userMapPosition(spots, userLocation.lat, userLocation.lon);
-  const mapSize = 240;
-
-  return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={mobileWebStyles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Compact dot map */}
-      <View style={mobileWebStyles.mapWrap}>
-        <Text style={mobileWebStyles.mapLabel}>Dark Sky Map</Text>
-        <View style={[mobileWebStyles.dotField, { width: mapSize, height: mapSize }]}>
-          <View
-            style={[
-              webStyles.userDot,
-              { left: (userPos.px / MAP_SIZE) * mapSize - 6,
-                top: (userPos.py / MAP_SIZE) * mapSize - 6 },
-            ]}
-          />
-          {positioned.map((spot, i) => (
-            <Pressable
-              key={spot.name}
-              style={[
-                webStyles.spotDot,
-                selectedIdx === i && webStyles.spotDotSelected,
-                {
-                  left: (spot.px / MAP_SIZE) * mapSize - 14,
-                  top: (spot.py / MAP_SIZE) * mapSize - 14,
-                },
-              ]}
-              onPress={() => setSelectedIdx(i === selectedIdx ? null : i)}
-            >
-              <Text style={[
-                webStyles.spotDotText,
-                selectedIdx === i && webStyles.spotDotTextSelected,
-              ]}>
-                {spot.rank ?? i + 1}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={webStyles.mapLegend}>
-          <View style={webStyles.legendRow}>
-            <View style={webStyles.userDotSmall} />
-            <Text style={webStyles.legendText}>Your location</Text>
-          </View>
-          <View style={webStyles.legendRow}>
-            <View style={webStyles.pinDotSmall} />
-            <Text style={webStyles.legendText}>Dark sky spot</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Scrollable spot list below map */}
-      <View style={mobileWebStyles.list}>
-        {spots.map((spot, i) => (
-          <SpotCard
-            key={spot.name + spot.lat}
-            spot={spot}
-            onPress={() => setSelectedIdx(i === selectedIdx ? null : i)}
-            showViewDetails
-            onViewDetails={onViewDetails}
-          />
-        ))}
-        {spots.length === 0 && (
-          <Text style={webStyles.emptyText}>No spots found in this area.</Text>
-        )}
-      </View>
-    </ScrollView>
-  );
-}
-
-const mobileWebStyles = StyleSheet.create({
+const mobileStyles = StyleSheet.create({
   content: {
     padding: spacing['3xl'],
     gap: spacing['4xl'],
     paddingBottom: spacing['7xl'],
   },
   mapWrap: {
-    alignItems: 'center',
-    backgroundColor: colors.background.surface,
+    height: 320,
     borderRadius: borderRadius['3xl'],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    padding: spacing['3xl'],
-    gap: spacing['3xl'],
-  },
-  mapLabel: {
-    ...typography.scale.label.large,
-    color: colors.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  dotField: {
-    backgroundColor: colors.background.elevated,
-    borderRadius: borderRadius['2xl'],
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border.default,
     position: 'relative',
-    overflow: 'hidden',
   },
-  list: {
-    gap: spacing.xl,
+  list: { gap: spacing.xl },
+  emptyText: {
+    ...typography.scale.body.small,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    paddingTop: spacing['6xl'],
   },
 });
+
+// ── Main export ────────────────────────────────────────────────────────────
+export default function SpotMap(props: SpotMapProps) {
+  const { width } = useWindowDimensions();
+
+  if (Platform.OS !== 'web') {
+    return <NativeMap {...props} />;
+  }
+
+  if (width < breakpoints.web) {
+    return <MobileWebLayout {...props} />;
+  }
+
+  return <DesktopWebLayout {...props} />;
+}
