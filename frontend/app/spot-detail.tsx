@@ -5,7 +5,7 @@
  * via components/stargaze/SpotDetail.tsx.
  */
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useContextStore } from '@/store/context';
@@ -98,10 +98,14 @@ export default function SpotDetailRoute() {
         </View>
 
         {spot.website && (
-          <View style={styles.card}>
+          <Pressable
+            style={styles.card}
+            onPress={() => Linking.openURL(spot.website!)}
+          >
             <Text style={styles.cardLabel}>WEBSITE</Text>
-            <Text style={styles.cardLink}>{spot.website}</Text>
-          </View>
+            <Text style={[styles.cardLink, styles.cardLinkTappable]}>{spot.website}</Text>
+            <Text style={styles.cardLinkHint}>Tap to open ↗</Text>
+          </Pressable>
         )}
       </ScrollView>
     </View>
@@ -219,6 +223,13 @@ const styles = StyleSheet.create({
   cardLink: {
     ...typography.scale.body.small,
     color: colors.accent.secondary,
+  },
+  cardLinkTappable: {
+    textDecorationLine: 'underline',
+  },
+  cardLinkHint: {
+    fontSize: 11,
+    color: colors.text.secondary,
   },
 
   comingSoon: {

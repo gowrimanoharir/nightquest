@@ -474,7 +474,8 @@ function WebMapPlaceholder({ spots, userLocation, onViewDetails }: SpotMapProps)
 const webStyles = StyleSheet.create({
   container: { flex: 1, flexDirection: 'row', gap: spacing['6xl'], padding: spacing['3xl'] },
   mapArea: {
-    width: MAP_SIZE + spacing['6xl'],
+    flex: 2,
+    minWidth: 300,
     backgroundColor: colors.background.surface,
     borderRadius: borderRadius['3xl'],
     borderWidth: 1,
@@ -482,7 +483,6 @@ const webStyles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing['3xl'],
     gap: spacing['3xl'],
-    flexShrink: 0,
   },
   mapLabel: {
     ...typography.scale.label.large,
@@ -559,7 +559,7 @@ const webStyles = StyleSheet.create({
     fontSize: 11,
     color: colors.text.secondary,
   },
-  listScroll: { flex: 1 },
+  listScroll: { flex: 3 },
   listContent: {
     gap: spacing.xl,
     paddingBottom: spacing['7xl'],
