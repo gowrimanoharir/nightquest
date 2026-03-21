@@ -329,7 +329,11 @@ export default function StargazeScreen() {
   return (
     <View style={styles.screen}>
       {/* Header */}
-      <View style={[styles.header, isTabletOrWeb && styles.headerTablet]}>
+      <View style={[
+        styles.header,
+        isTabletOrWeb && styles.headerTablet,
+        { paddingTop: Math.max(spacing['4xl'], insets.top + spacing.xl) },
+      ]}>
         <View style={styles.headerLeft}>
           <Text style={styles.logoText}>⭐ Stargaze</Text>
           {activeEvent && (

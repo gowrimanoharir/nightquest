@@ -26,30 +26,40 @@ function TabBar({ state, descriptors, navigation }: any) {
 
   if (isWeb) return null; // Web uses top header navigation in _layout.tsx root
 
+  // Build per-route press handler + element
+  function renderRouteTab(route: any, index: number) {
+    const { options } = descriptors[route.key];
+    const focused = state.index === index;
+
+    if (route.name === '__chat__') return null;
+
+    const onPress = () => {
+      const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+      if (!event.defaultPrevented) {
+        navigation.navigate(route.name);
+        setTab(route.name === 'explore' ? 'explore' : 'stargaze');
+      }
+    };
+
+    return (
+      <Pressable key={route.key} style={styles.tabItem} onPress={onPress}>
+        {options.tabBarIcon?.({ focused, color: focused ? colors.accent.primary : colors.text.secondary, size: 24 })}
+        <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
+          {options.tabBarLabel ?? options.title ?? route.name}
+        </Text>
+      </Pressable>
+    );
+  }
+
+  // Desired order: Explore | ✦ AI (center) | Stargaze
+  const exploreRoute = state.routes.find((r: any) => r.name === 'explore');
+  const stargazeRoute = state.routes.find((r: any) => r.name === 'stargaze');
+  const exploreIdx = state.routes.indexOf(exploreRoute);
+  const stargazeIdx = state.routes.indexOf(stargazeRoute);
+
   return (
     <View style={styles.tabBar}>
-      {state.routes.map((route: any, index: number) => {
-        const { options } = descriptors[route.key];
-        const focused = state.index === index;
-        const label = options.tabBarLabel ?? options.title ?? route.name;
-
-        if (route.name === '__chat__') return null; // chat handled separately
-
-        const onPress = () => {
-          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-          if (!event.defaultPrevented) {
-            navigation.navigate(route.name);
-            setTab(route.name === 'explore' ? 'explore' : 'stargaze');
-          }
-        };
-
-        return (
-          <Pressable key={route.key} style={styles.tabItem} onPress={onPress}>
-            {options.tabBarIcon?.({ focused, color: focused ? colors.accent.primary : colors.text.secondary, size: 24 })}
-            <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>{label}</Text>
-          </Pressable>
-        );
-      })}
+      {exploreRoute && renderRouteTab(exploreRoute, exploreIdx)}
 
       {/* Elevated center chat button — Phase 4 wires this to open ChatSheet */}
       <View style={styles.chatWrap}>
@@ -63,6 +73,8 @@ function TabBar({ state, descriptors, navigation }: any) {
         </Pressable>
         <Text style={styles.chatLabel}>AI</Text>
       </View>
+
+      {stargazeRoute && renderRouteTab(stargazeRoute, stargazeIdx)}
     </View>
   );
 }
