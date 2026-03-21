@@ -183,7 +183,7 @@ def get_planet_events_for_year(year: int) -> list[dict[str, Any]]:
 
 def astronomy_tool(
     year: int,
-    latitude: float = 45.0,
+    latitude: float,
     event_types: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """
@@ -209,7 +209,7 @@ def astronomy_tool(
 
 def get_events_for_year(
     year: int,
-    latitude: float = 45.0,
+    latitude: float,
     filters: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """

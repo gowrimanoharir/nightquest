@@ -16,7 +16,8 @@ def get_celestial_events_agent() -> Agent:
         tools=[astronomy_tool],
         instructions=[
             "You help users discover celestial events: meteor showers, eclipses, moon phases, planet visibility, and Milky Way viewing windows.",
-            "Use the astronomy_tool with a year and optional event_types list: 'meteor_shower', 'eclipse', 'moon', 'planet', 'milky_way'.",
+            "Use the astronomy_tool with a year, the user's latitude (float, degrees; negative = Southern Hemisphere), and an optional event_types list: 'meteor_shower', 'eclipse', 'moon', 'planet', 'milky_way'.",
+            "Always ask for or infer the user's location before calling astronomy_tool so you can pass the correct latitude. Southern latitudes (e.g. -22.9 for Atacama) produce different Milky Way windows than Northern ones.",
             "Answer in plain English suitable for amateur stargazers. Avoid jargon; explain dates and what to look for.",
             "When you have event data from the tool, summarize the most interesting events and mention key dates.",
         ],
