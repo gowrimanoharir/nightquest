@@ -198,6 +198,17 @@ const cardStyles = StyleSheet.create({
 function NativeMap({ spots, userLocation, onViewDetails }: SpotMapProps) {
   const [showList, setShowList] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<DarkSpotSite | null>(null);
+  const listScrollRef = useRef<ScrollView>(null);
+
+  const handlePinPress = useCallback((spot: DarkSpotSite) => {
+    setSelectedSpot(spot);
+  }, []);
+
+  const handleListPress = useCallback((spot: DarkSpotSite) => {
+    // List tap: set selected (shows in active state), switch to map to show pin
+    setSelectedSpot(spot);
+    setShowList(false);
+  }, []);
 
   const initialRegion = {
     latitude: userLocation.lat,
@@ -205,10 +216,6 @@ function NativeMap({ spots, userLocation, onViewDetails }: SpotMapProps) {
     latitudeDelta: 3.0,
     longitudeDelta: 3.0,
   };
-
-  const handlePinPress = useCallback((spot: DarkSpotSite) => {
-    setSelectedSpot(spot);
-  }, []);
 
   if (!MapView) {
     return (
@@ -222,6 +229,7 @@ function NativeMap({ spots, userLocation, onViewDetails }: SpotMapProps) {
     <View style={mapStyles.container}>
       {showList ? (
         <ScrollView
+          ref={listScrollRef}
           style={mapStyles.listScroll}
           contentContainerStyle={mapStyles.listContent}
           showsVerticalScrollIndicator={false}
@@ -230,7 +238,8 @@ function NativeMap({ spots, userLocation, onViewDetails }: SpotMapProps) {
             <SpotCard
               key={spot.name + spot.lat}
               spot={spot}
-              onPress={() => setSelectedSpot(spot)}
+              selected={selectedSpot?.name === spot.name}
+              onPress={() => handleListPress(spot)}
               showViewDetails
               onViewDetails={onViewDetails}
             />
@@ -352,6 +361,18 @@ const darkMapStyle = [
 // Desktop: Leaflet map left (40%) + ranked list right (60%)
 function DesktopWebLayout({ spots, userLocation, onViewDetails }: SpotMapProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const listScrollRef = useRef<ScrollView>(null);
+  const itemHeightRef = useRef<number>(0);
+
+  // When pin is tapped (selectedIdx changes from Leaflet), scroll list to that item
+  useEffect(() => {
+    if (selectedIdx !== null && listScrollRef.current && itemHeightRef.current > 0) {
+      listScrollRef.current.scrollTo({
+        y: selectedIdx * (itemHeightRef.current + 12), // 12 = gap
+        animated: true,
+      });
+    }
+  }, [selectedIdx]);
 
   return (
     <View style={webStyles.container}>
@@ -367,18 +388,26 @@ function DesktopWebLayout({ spots, userLocation, onViewDetails }: SpotMapProps) 
 
       {/* Right pane — ranked spot list */}
       <ScrollView
+        ref={listScrollRef}
         style={webStyles.listPane}
         contentContainerStyle={webStyles.listContent}
         showsVerticalScrollIndicator={false}
       >
         {spots.map((spot, i) => (
-          <SpotCard
+          <View
             key={spot.name + spot.lat}
-            spot={spot}
-            onPress={() => setSelectedIdx(i === selectedIdx ? null : i)}
-            showViewDetails
-            onViewDetails={onViewDetails}
-          />
+            onLayout={(e) => {
+              if (i === 0) itemHeightRef.current = e.nativeEvent.layout.height;
+            }}
+          >
+            <SpotCard
+              spot={spot}
+              selected={selectedIdx === i}
+              onPress={() => setSelectedIdx(i === selectedIdx ? null : i)}
+              showViewDetails
+              onViewDetails={onViewDetails}
+            />
+          </View>
         ))}
         {spots.length === 0 && (
           <Text style={webStyles.emptyText}>No spots found in this area.</Text>
@@ -392,9 +421,22 @@ function DesktopWebLayout({ spots, userLocation, onViewDetails }: SpotMapProps) 
 function MobileWebLayout({ spots, userLocation, onViewDetails }: SpotMapProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const selectedSpot = selectedIdx !== null ? spots[selectedIdx] : null;
+  const listScrollRef = useRef<ScrollView>(null);
+  const itemHeightRef = useRef<number>(0);
+
+  // Scroll list to selected item when pin tapped
+  useEffect(() => {
+    if (selectedIdx !== null && listScrollRef.current && itemHeightRef.current > 0) {
+      listScrollRef.current.scrollTo({
+        y: selectedIdx * (itemHeightRef.current + 12),
+        animated: true,
+      });
+    }
+  }, [selectedIdx]);
 
   return (
     <ScrollView
+      ref={listScrollRef}
       style={{ flex: 1 }}
       contentContainerStyle={mobileStyles.content}
       showsVerticalScrollIndicator={false}
@@ -419,13 +461,20 @@ function MobileWebLayout({ spots, userLocation, onViewDetails }: SpotMapProps) {
       {/* Scrollable spot list below map */}
       <View style={mobileStyles.list}>
         {spots.map((spot, i) => (
-          <SpotCard
+          <View
             key={spot.name + spot.lat}
-            spot={spot}
-            onPress={() => setSelectedIdx(i === selectedIdx ? null : i)}
-            showViewDetails
-            onViewDetails={onViewDetails}
-          />
+            onLayout={(e) => {
+              if (i === 0) itemHeightRef.current = e.nativeEvent.layout.height;
+            }}
+          >
+            <SpotCard
+              spot={spot}
+              selected={selectedIdx === i}
+              onPress={() => setSelectedIdx(i === selectedIdx ? null : i)}
+              showViewDetails
+              onViewDetails={onViewDetails}
+            />
+          </View>
         ))}
         {spots.length === 0 && (
           <Text style={mobileStyles.emptyText}>No spots found in this area.</Text>

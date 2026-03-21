@@ -18,6 +18,15 @@ export interface ActiveEvent {
   type: EventType;
 }
 
+export interface ConditionsSummary {
+  score: number;
+  label: string;
+  data_type?: 'forecast' | 'historical_average';
+  cloud_pct?: number;
+  moon_illumination?: number;
+  wind_kmh?: number;
+}
+
 export interface DarkSpotSite {
   name: string;
   lat: number;
@@ -27,10 +36,13 @@ export interface DarkSpotSite {
   website?: string;
   country?: string;
   state?: string;
+  address?: string;
   // Phase 3A: enriched fields from /api/spots
   distance?: number;    // km from user location
   score?: number;       // composite ranking score 0–100
   rank?: number;        // 1-based position
+  // Phase 3B: conditions summary for spot cards
+  conditions_summary?: ConditionsSummary;
 }
 
 export interface ActiveSpot {

@@ -2,6 +2,33 @@
 
 import { ContextObject, DarkSpotSite, Location } from '@/store/context';
 
+// --- Conditions types ---
+
+export interface ConditionFactor {
+  name: string;
+  score: number;
+  max_score: number;
+  status: 'good' | 'moderate' | 'poor';
+  detail: string;
+}
+
+export interface MoonInfo {
+  phase: string;
+  illumination: number;
+  rise_time: string;
+  set_time: string;
+  best_viewing_window: string;
+}
+
+export interface ConditionsResponse {
+  score: number;
+  label: string;
+  factors: ConditionFactor[];
+  moon: MoonInfo;
+  ai_take: string;
+  data_type: 'forecast' | 'historical_average';
+}
+
 function normalizeBaseUrl(raw: string | undefined): string {
   const url = (raw ?? 'http://localhost:8000').trim().replace(/\/$/, '');
   // Ensure an absolute URL — add https:// if no protocol is present
@@ -103,6 +130,19 @@ export async function fetchSpots(
     date,
     event_type: eventType,
     distance_km: distanceKm,
+  });
+}
+
+export async function fetchConditions(
+  spotLat: number,
+  spotLon: number,
+  date: string,
+  timezone: string,
+): Promise<ConditionsResponse> {
+  return post<ConditionsResponse>('/api/conditions', {
+    spot: { lat: spotLat, lon: spotLon },
+    date,
+    timezone,
   });
 }
 

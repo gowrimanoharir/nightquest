@@ -21,7 +21,7 @@ an AI assistant for recommendations.
 | 1     | Backend Foundation             | ✅ Complete    | —        |
 | 2     | Explore Tab + Context Object   | ✅ Complete    | —        |
 | 3A    | Stargaze Tab: Spot Finder      | ✅ Complete    | 3553d2e  |
-| 3B    | Stargaze Tab: Conditions       | 🔲 Next        | —        |
+| 3B    | Stargaze Tab: Conditions       | ✅ Complete    | —        |
 | 4     | AI Chat                        | 🔲 Pending     | —        |
 | 5     | Full Integration + Polish      | 🔲 Pending     | —        |
 | 6     | Travel Planning                | 🔲 Pending     | —        |
@@ -64,7 +64,36 @@ an AI assistant for recommendations.
 - `frontend/services/api.ts` — all API calls; `fetchEvents`, `fetchSpots`, `fetchChat`,
   `fetchPrompts`; base URL from `EXPO_PUBLIC_API_URL`
 
-### Phase 3A — Stargaze Tab: Spot Finder
+### Phase 3B — Stargaze Tab: Conditions
+- `backend/sub_agents/weather_conditions/tools.py` — `weather_tool`: Open-Meteo forecast (≤16 days)
+ + ERA5 archive averages (>16 days), derives all 8 factors, moon via astronomy-engine, rule-based ai_take
+- `backend/sub_agents/weather_conditions/agent.py` — Agno Agent wrapping weather_tool for Phase 4 chat
+- `backend/api.py` — added `POST /api/conditions`; updated `POST /api/spots` to fetch conditions in
+ parallel (asyncio.gather) and re-rank by composite score
+- `backend/schemas.py` — `ConditionsSummary` model added; `DarkSpotSite` extended with
+ `conditions_summary` + `address` fields
+- `backend/scripts/enrich_addresses.py` — one-time Nominatim reverse geocoding script to enrich
+ `dark_sky_sites.json` with `address: "region, country"` field; 1s delay, skips sites with good
+ state+country already set
+- `frontend/services/api.ts` — `fetchConditions()` + `ConditionFactor`, `MoonInfo`,
+ `ConditionsResponse` types added
+- `frontend/store/context.ts` — `ConditionsSummary` interface + `address` field in `DarkSpotSite`
+- `frontend/components/stargaze/ConditionsRow.tsx` — single condition factor row; icon, name,
+ score/max pill, progress bar, detail text; left border accent = status color
+- `frontend/components/stargaze/SpotDetail.tsx` — full detail screen: score ring (SVG web, native
+ view), 8 factor rows via ConditionsRow, expandable score breakdown, moon section, Getting There
+ with platform-aware directions (iOS/Android native maps, web Google Maps), AI Take section,
+ historical averages banner, two-column web layout
+- `frontend/app/spot-detail.tsx` — delegates to SpotDetail.tsx (stub replaced)
+- `frontend/components/stargaze/SpotCard.tsx` — condition icon placeholders replaced with real
+ status-colored icons from conditions_summary; `selected` prop added for highlighted state
+- `frontend/components/stargaze/SpotMap.tsx` — bidirectional map/list interaction fixed:
+ pin tap → summary card + list scroll + highlight; list tap → pin highlight + switch to map view
+ (native); web layouts use ScrollView ref for programmatic scroll on selectedIdx change
+- `e2e/fixtures/conditions-mock.json` — deterministic mock conditions payload (15 tests)
+- `e2e/fixtures/spots-mock.json` — updated with conditions_summary + address fields
+- `e2e/fixtures/base.ts` — intercepts `POST /api/conditions` with mock payload
+- `e2e/tests/spot-detail.spec.ts` — 14 tests covering Phase 3B validation criteria
 - `backend/sub_agents/dark_sky_location/tools.py` — `distance_tool` (haversine),
   `dark_sky_lookup_tool` (load JSON, filter, rank Bortle 60% + distance 40%)
 - `backend/sub_agents/dark_sky_location/agent.py` — Agno Agent definition
@@ -99,22 +128,21 @@ an AI assistant for recommendations.
 
 | File | Status |
 |------|--------|
-| `backend/sub_agents/weather_conditions/tools.py` | Stub — implement in Phase 3B |
-| `backend/sub_agents/weather_conditions/agent.py` | Stub — implement in Phase 3B |
+| `backend/sub_agents/weather_conditions/tools.py` | ✅ Complete — Phase 3B |
+| `backend/sub_agents/weather_conditions/agent.py` | ✅ Complete — Phase 3B |
 | `backend/orchestrator.py` | Stub — implement in Phase 4 |
-| `POST /api/conditions` | Not yet added to `api.py` — Phase 3B |
+| `POST /api/conditions` | ✅ Live — Phase 3B |
 | `POST /api/chat` | Not yet added to `api.py` — Phase 4 |
 | `GET /api/prompts` | Not yet added to `api.py` — Phase 4 |
-| `frontend/components/stargaze/SpotDetail.tsx` | Not created — Phase 3B |
-| `frontend/components/stargaze/ConditionsRow.tsx` | Not created — Phase 3B |
+| `frontend/components/stargaze/SpotDetail.tsx` | ✅ Complete — Phase 3B |
+| `frontend/components/stargaze/ConditionsRow.tsx` | ✅ Complete — Phase 3B |
 | `frontend/components/chat/ChatSheet.tsx` | Not created — Phase 4 |
 | `frontend/components/chat/MessageBubble.tsx` | Not created — Phase 4 |
 | `frontend/components/chat/SuggestedPrompts.tsx` | Not created — Phase 4 |
 | `frontend/components/chat/ActionCard.tsx` | Not created — Phase 4 |
-| `frontend/app/spot-detail.tsx` route | Not created — Phase 3B |
 | Chat button in tab bar / web header | Wired stub — Phase 4 |
-| SpotCard condition icons | Placeholder emojis — replace in Phase 3B |
-| SpotDetail "View Details" navigation | `setActiveSpot` called but no route push — Phase 3B |
+| SpotCard condition icons | ✅ Real status-colored icons — Phase 3B |
+| SpotDetail "View Details" navigation | ✅ Navigates to `/spot-detail` — Phase 3B |
 
 ---
 
@@ -278,9 +306,12 @@ Every phase must add tests. Rules:
 ### 6. Backend Python syntax check
 ```bash
 cd backend && python -m py_compile api.py schemas.py \
-  sub_agents/celestial_events/tools.py \
-  sub_agents/dark_sky_location/tools.py \
-  sub_agents/dark_sky_location/agent.py
+ sub_agents/celestial_events/tools.py \
+ sub_agents/dark_sky_location/tools.py \
+ sub_agents/dark_sky_location/agent.py \
+ sub_agents/weather_conditions/tools.py \
+ sub_agents/weather_conditions/agent.py \
+ scripts/enrich_addresses.py
 ```
 Add any new `.py` files to this list. No output = no syntax errors.
 

@@ -1,12 +1,7 @@
-/**
- * SpotCard — used in list view and in the pin-tap summary sheet.
- * Renders rank, name, score, Bortle, distance, certified badge, and
- * placeholder condition icons (filled in Phase 3B).
- */
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, borderRadius, typography } from '@/constants/theme';
-import { DarkSpotSite } from '@/store/context';
+import { DarkSpotSite, ConditionsSummary } from '@/store/context';
 
 interface SpotCardProps {
   spot: DarkSpotSite;
@@ -14,6 +9,8 @@ interface SpotCardProps {
   /** Show full CTA row with "View Details" button */
   showViewDetails?: boolean;
   onViewDetails?: (spot: DarkSpotSite) => void;
+  /** Highlight this card (e.g. selected pin on web map) */
+  selected?: boolean;
 }
 
 function scoreColor(score?: number): string {
@@ -23,7 +20,54 @@ function scoreColor(score?: number): string {
   return colors.status.poor;
 }
 
-export default function SpotCard({ spot, onPress, showViewDetails, onViewDetails }: SpotCardProps) {
+// ---------------------------------------------------------------------------
+// Condition icons — real when conditions_summary present, placeholder otherwise
+// ---------------------------------------------------------------------------
+
+function cloudIcon(cloudPct?: number): { emoji: string; color: string } {
+  if (cloudPct == null) return { emoji: '⛅', color: colors.text.secondary };
+  if (cloudPct < 20) return { emoji: '☀️', color: colors.status.good };
+  if (cloudPct < 60) return { emoji: '⛅', color: colors.status.moderate };
+  return { emoji: '☁️', color: colors.status.poor };
+}
+
+function moonIcon(illum?: number): { emoji: string; color: string } {
+  if (illum == null) return { emoji: '🌙', color: colors.text.secondary };
+  if (illum < 20) return { emoji: '🌑', color: colors.status.good };
+  if (illum < 60) return { emoji: '🌓', color: colors.status.moderate };
+  return { emoji: '🌕', color: colors.status.poor };
+}
+
+function windIcon(windKmh?: number): { emoji: string; color: string } {
+  if (windKmh == null) return { emoji: '💨', color: colors.text.secondary };
+  if (windKmh < 10) return { emoji: '🌬️', color: colors.status.good };
+  if (windKmh < 25) return { emoji: '💨', color: colors.status.moderate };
+  return { emoji: '🌪️', color: colors.status.poor };
+}
+
+function ConditionIcons({ summary }: { summary?: ConditionsSummary }) {
+  const cloud = cloudIcon(summary?.cloud_pct);
+  const moon = moonIcon(summary?.moon_illumination);
+  const wind = windIcon(summary?.wind_kmh);
+  return (
+    <>
+      <View style={styles.condIcon}>
+        <Text style={styles.condIconEmoji}>{cloud.emoji}</Text>
+        <Text style={[styles.condIconLabel, { color: cloud.color }]}>Cloud</Text>
+      </View>
+      <View style={styles.condIcon}>
+        <Text style={styles.condIconEmoji}>{moon.emoji}</Text>
+        <Text style={[styles.condIconLabel, { color: moon.color }]}>Moon</Text>
+      </View>
+      <View style={styles.condIcon}>
+        <Text style={styles.condIconEmoji}>{wind.emoji}</Text>
+        <Text style={[styles.condIconLabel, { color: wind.color }]}>Wind</Text>
+      </View>
+    </>
+  );
+}
+
+export default function SpotCard({ spot, onPress, showViewDetails, onViewDetails, selected }: SpotCardProps) {
   const sc = spot.score != null ? Math.round(spot.score) : null;
   const distLabel = spot.distance != null
     ? `${spot.distance < 1 ? '< 1' : Math.round(spot.distance)} km away`
@@ -31,7 +75,7 @@ export default function SpotCard({ spot, onPress, showViewDetails, onViewDetails
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.card, selected && styles.cardSelected, pressed && styles.cardPressed]}
       onPress={() => onPress?.(spot)}
     >
       <View style={styles.row}>
@@ -81,19 +125,8 @@ export default function SpotCard({ spot, onPress, showViewDetails, onViewDetails
                 <Text style={styles.certTagText}>IDA Certified</Text>
               </View>
             )}
-            {/* Placeholder condition icons — filled in Phase 3B */}
-            <View style={styles.condIcon}>
-              <Text style={styles.condIconEmoji}>⛅</Text>
-              <Text style={styles.condIconLabel}>Cloud</Text>
-            </View>
-            <View style={styles.condIcon}>
-              <Text style={styles.condIconEmoji}>🌙</Text>
-              <Text style={styles.condIconLabel}>Moon</Text>
-            </View>
-            <View style={styles.condIcon}>
-              <Text style={styles.condIconEmoji}>💨</Text>
-              <Text style={styles.condIconLabel}>Wind</Text>
-            </View>
+            {/* Condition icons — real data when conditions_summary available */}
+            <ConditionIcons summary={spot.conditions_summary} />
           </View>
         </View>
       </View>
@@ -118,6 +151,10 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius['2xl'],
     padding: spacing['3xl'],
     gap: spacing.xl,
+  },
+  cardSelected: {
+    borderColor: colors.accent.primary,
+    backgroundColor: 'rgba(212,120,10,0.06)',
   },
   cardPressed: {
     borderColor: colors.accent.secondary,

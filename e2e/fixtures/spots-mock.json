@@ -9,9 +9,18 @@
       "website": "https://mcdonaldobservatory.org",
       "country": "USA",
       "state": "Texas",
+      "address": "Texas, United States",
       "distance": 143.2,
-      "score": 88.5,
-      "rank": 1
+      "score": 87.0,
+      "rank": 1,
+      "conditions_summary": {
+        "score": 87,
+        "label": "Excellent",
+        "data_type": "forecast",
+        "cloud_pct": 5.0,
+        "moon_illumination": 7,
+        "wind_kmh": 6.0
+      }
     },
     {
       "name": "Big Bend National Park",
@@ -22,9 +31,18 @@
       "website": "https://www.nps.gov/bibe",
       "country": "USA",
       "state": "Texas",
+      "address": "Texas, United States",
       "distance": 289.1,
-      "score": 78.2,
-      "rank": 2
+      "score": 78.0,
+      "rank": 2,
+      "conditions_summary": {
+        "score": 78,
+        "label": "Good",
+        "data_type": "forecast",
+        "cloud_pct": 20.0,
+        "moon_illumination": 7,
+        "wind_kmh": 12.0
+      }
     },
     {
       "name": "Enchanted Rock State Natural Area",
@@ -35,9 +53,18 @@
       "website": null,
       "country": "USA",
       "state": "Texas",
+      "address": "Texas, United States",
       "distance": 101.4,
       "score": 61.0,
-      "rank": 3
+      "rank": 3,
+      "conditions_summary": {
+        "score": 61,
+        "label": "Fair",
+        "data_type": "forecast",
+        "cloud_pct": 45.0,
+        "moon_illumination": 7,
+        "wind_kmh": 18.0
+      }
     }
   ]
 }

@@ -1,0 +1,71 @@
+{
+  "score": 87,
+  "label": "Excellent",
+  "factors": [
+    {
+      "name": "Cloud Cover",
+      "score": 28,
+      "max_score": 30,
+      "status": "good",
+      "detail": "Clear (5% cloud cover)"
+    },
+    {
+      "name": "Transparency",
+      "score": 17,
+      "max_score": 20,
+      "status": "good",
+      "detail": "Excellent — visibility 22 km, humidity 32%"
+    },
+    {
+      "name": "Atmospheric Seeing",
+      "score": 18,
+      "max_score": 20,
+      "status": "good",
+      "detail": "Excellent — low jet-stream activity (8 km/h at altitude)"
+    },
+    {
+      "name": "Darkness",
+      "score": 14,
+      "max_score": 15,
+      "status": "good",
+      "detail": "New moon — 7% illuminated, excellent darkness"
+    },
+    {
+      "name": "Smoke / AQI",
+      "score": 5,
+      "max_score": 5,
+      "status": "good",
+      "detail": "Air quality good (PM2.5 4.2 μg/m³)"
+    },
+    {
+      "name": "Wind",
+      "score": 4,
+      "max_score": 4,
+      "status": "good",
+      "detail": "Calm — 6 km/h"
+    },
+    {
+      "name": "Humidity",
+      "score": 3,
+      "max_score": 3,
+      "status": "good",
+      "detail": "Low humidity — 32%"
+    },
+    {
+      "name": "Temperature",
+      "score": 3,
+      "max_score": 3,
+      "status": "good",
+      "detail": "Comfortable — 18°C"
+    }
+  ],
+  "moon": {
+    "phase": "Waxing Crescent",
+    "illumination": 7,
+    "rise_time": "08:23",
+    "set_time": "21:47",
+    "best_viewing_window": "After 21:47 when moon has set"
+  },
+  "ai_take": "Conditions look excellent. The waxing crescent (7% illuminated) sets at 21:47, leaving dark skies later in the night. Aim for after 22:00 for the darkest skies.",
+  "data_type": "forecast"
+}

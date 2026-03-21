@@ -24,6 +24,17 @@ class CelestialEvent(BaseModel):
     description: Optional[str] = None
 
 
+# --- Conditions summary (inline in spot cards) ---
+class ConditionsSummary(BaseModel):
+    score: int
+    label: str
+    data_type: Optional[Literal["forecast", "historical_average"]] = None
+    # Top-line factor values for quick display on spot cards
+    cloud_pct: Optional[float] = None
+    moon_illumination: Optional[int] = None
+    wind_kmh: Optional[float] = None
+
+
 # --- Dark sky spots (IDA dataset & API response) ---
 class DarkSpotSite(BaseModel):
     name: str
@@ -34,10 +45,13 @@ class DarkSpotSite(BaseModel):
     website: Optional[str] = None
     country: Optional[str] = None
     state: Optional[str] = None  # or region
+    address: Optional[str] = None  # enriched by Nominatim script: "region, country"
     # Phase 3A: enriched by /api/spots — not present in raw dataset
     distance: Optional[float] = None   # km from user location
     score: Optional[float] = None      # composite ranking score 0–100
     rank: Optional[int] = None         # 1-based position in ranked list
+    # Phase 3B: conditions summary for spot cards
+    conditions_summary: Optional[ConditionsSummary] = None
 
 
 # --- Visibility conditions (8 factors) ---
