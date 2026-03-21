@@ -345,31 +345,107 @@ const darkMapStyle = [
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
 ];
 
-// --- Web fallback (side-by-side handled in stargaze.tsx) ---
-function WebMapPlaceholder({ spots, onViewDetails }: Omit<SpotMapProps, 'userLocation'> & { userLocation?: Location }) {
+// --- Web fallback: relative position spots by lat/lon ---
+const MAP_SIZE = 280; // px
+const MAP_PAD = 24;   // px padding inside map area
+
+function spotsToMapPositions(
+  spots: DarkSpotSite[],
+  userLat: number,
+  userLon: number,
+): (DarkSpotSite & { px: number; py: number })[] {
+  if (spots.length === 0) return [];
+
+  // Collect all lat/lon including user location
+  const allLats = [userLat, ...spots.map((s) => s.lat)];
+  const allLons = [userLon, ...spots.map((s) => s.lon)];
+  const minLat = Math.min(...allLats);
+  const maxLat = Math.max(...allLats);
+  const minLon = Math.min(...allLons);
+  const maxLon = Math.max(...allLons);
+  const latRange = maxLat - minLat || 0.1;
+  const lonRange = maxLon - minLon || 0.1;
+  const inner = MAP_SIZE - MAP_PAD * 2;
+
+  return spots.map((s) => ({
+    ...s,
+    // x: left→right as lon increases; y: top→bottom as lat decreases
+    px: ((s.lon - minLon) / lonRange) * inner + MAP_PAD,
+    py: ((maxLat - s.lat) / latRange) * inner + MAP_PAD,
+  }));
+}
+
+function userMapPosition(
+  spots: DarkSpotSite[],
+  userLat: number,
+  userLon: number,
+): { px: number; py: number } {
+  const allLats = [userLat, ...spots.map((s) => s.lat)];
+  const allLons = [userLon, ...spots.map((s) => s.lon)];
+  const minLat = Math.min(...allLats);
+  const maxLat = Math.max(...allLats);
+  const minLon = Math.min(...allLons);
+  const maxLon = Math.max(...allLons);
+  const latRange = maxLat - minLat || 0.1;
+  const lonRange = maxLon - minLon || 0.1;
+  const inner = MAP_SIZE - MAP_PAD * 2;
+  return {
+    px: ((userLon - minLon) / lonRange) * inner + MAP_PAD,
+    py: ((maxLat - userLat) / latRange) * inner + MAP_PAD,
+  };
+}
+
+function WebMapPlaceholder({ spots, userLocation, onViewDetails }: SpotMapProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const positioned = spotsToMapPositions(spots, userLocation.lat, userLocation.lon);
+  const userPos = userMapPosition(spots, userLocation.lat, userLocation.lon);
 
   return (
     <View style={webStyles.container}>
-      {/* Left: pseudo-map with spot dots */}
+      {/* Left: relative position map */}
       <View style={webStyles.mapArea}>
-        <Text style={webStyles.mapLabel}>⭐ Dark Sky Spots</Text>
-        <View style={webStyles.dotField}>
-          {spots.map((spot, i) => (
+        <Text style={webStyles.mapLabel}>Dark Sky Map</Text>
+
+        <View style={[webStyles.dotField, { width: MAP_SIZE, height: MAP_SIZE }]}>
+          {/* User location dot */}
+          <View
+            style={[
+              webStyles.userDot,
+              { left: userPos.px - 6, top: userPos.py - 6 },
+            ]}
+          />
+
+          {/* Spot dots */}
+          {positioned.map((spot, i) => (
             <Pressable
               key={spot.name}
               style={[
                 webStyles.spotDot,
                 selectedIdx === i && webStyles.spotDotSelected,
-                // rough positioning by lat/lon — normalized within dot field
+                { left: spot.px - 14, top: spot.py - 14 },
               ]}
               onPress={() => setSelectedIdx(i === selectedIdx ? null : i)}
             >
-              <Text style={webStyles.spotDotText}>{spot.rank ?? i + 1}</Text>
+              <Text style={[
+                webStyles.spotDotText,
+                selectedIdx === i && webStyles.spotDotTextSelected,
+              ]}>
+                {spot.rank ?? i + 1}
+              </Text>
             </Pressable>
           ))}
         </View>
-        <Text style={webStyles.mapNote}>Map view available on iOS/Android</Text>
+
+        <View style={webStyles.mapLegend}>
+          <View style={webStyles.legendRow}>
+            <View style={webStyles.userDotSmall} />
+            <Text style={webStyles.legendText}>Your location</Text>
+          </View>
+          <View style={webStyles.legendRow}>
+            <View style={webStyles.pinDotSmall} />
+            <Text style={webStyles.legendText}>Dark sky spot</Text>
+          </View>
+        </View>
       </View>
 
       {/* Right: ranked list */}
@@ -396,19 +472,17 @@ function WebMapPlaceholder({ spots, onViewDetails }: Omit<SpotMapProps, 'userLoc
 }
 
 const webStyles = StyleSheet.create({
-  container: { flex: 1, flexDirection: 'row', gap: spacing['6xl'] },
+  container: { flex: 1, flexDirection: 'row', gap: spacing['6xl'], padding: spacing['3xl'] },
   mapArea: {
-    flex: 1,
+    width: MAP_SIZE + spacing['6xl'],
     backgroundColor: colors.background.surface,
     borderRadius: borderRadius['3xl'],
     borderWidth: 1,
     borderColor: colors.border.default,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing['4xl'],
-    padding: spacing['6xl'],
-    minHeight: 400,
-    position: 'relative',
+    padding: spacing['3xl'],
+    gap: spacing['3xl'],
+    flexShrink: 0,
   },
   mapLabel: {
     ...typography.scale.label.large,
@@ -417,11 +491,21 @@ const webStyles = StyleSheet.create({
     letterSpacing: 1,
   },
   dotField: {
-    width: 300,
-    height: 300,
-    position: 'relative',
     backgroundColor: colors.background.elevated,
-    borderRadius: borderRadius['3xl'],
+    borderRadius: borderRadius['2xl'],
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  userDot: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.accent.primary,
+    borderWidth: 2,
+    borderColor: colors.text.primary,
   },
   spotDot: {
     position: 'absolute',
@@ -433,23 +517,47 @@ const webStyles = StyleSheet.create({
     borderColor: colors.accent.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    // Stagger dots diagonally for visual
-    left: '10%',
-    top: '10%',
   },
   spotDotSelected: {
     backgroundColor: colors.accent.primary,
   },
   spotDotText: {
-    ...typography.scale.label.small,
     fontSize: 11,
-    color: colors.text.primary,
     fontWeight: '700',
+    color: colors.accent.primary,
   },
-  mapNote: {
+  spotDotTextSelected: {
+    color: colors.text.inverse,
+  },
+  mapLegend: {
+    gap: spacing.sm,
+    alignSelf: 'flex-start',
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  userDotSmall: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.accent.primary,
+    borderWidth: 1.5,
+    borderColor: colors.text.primary,
+  },
+  pinDotSmall: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.background.surface,
+    borderWidth: 1.5,
+    borderColor: colors.accent.primary,
+  },
+  legendText: {
     ...typography.scale.caption.regular,
-    color: colors.text.disabled,
     fontSize: 11,
+    color: colors.text.secondary,
   },
   listScroll: { flex: 1 },
   listContent: {

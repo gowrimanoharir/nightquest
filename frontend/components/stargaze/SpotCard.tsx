@@ -83,13 +83,16 @@ export default function SpotCard({ spot, onPress, showViewDetails, onViewDetails
             )}
             {/* Placeholder condition icons — filled in Phase 3B */}
             <View style={styles.condIcon}>
-              <Text style={styles.condIconText}>☁</Text>
+              <Text style={styles.condIconEmoji}>🌤</Text>
+              <Text style={styles.condIconLabel}>Cloud</Text>
             </View>
             <View style={styles.condIcon}>
-              <Text style={styles.condIconText}>🌙</Text>
+              <Text style={styles.condIconEmoji}>🌙</Text>
+              <Text style={styles.condIconLabel}>Moon</Text>
             </View>
             <View style={styles.condIcon}>
-              <Text style={styles.condIconText}>💨</Text>
+              <Text style={styles.condIconEmoji}>💨</Text>
+              <Text style={styles.condIconLabel}>Wind</Text>
             </View>
           </View>
         </View>
@@ -211,11 +214,20 @@ const styles = StyleSheet.create({
   condIcon: {
     backgroundColor: colors.background.elevated,
     borderRadius: 6,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
+    alignItems: 'center',
+    gap: 2,
   },
-  condIconText: {
-    fontSize: 12,
+  condIconEmoji: {
+    fontSize: 13,
+    lineHeight: 16,
+  },
+  condIconLabel: {
+    fontSize: 9,
+    fontWeight: '500',
+    color: colors.text.disabled,
+    letterSpacing: 0.3,
   },
 
   // View Details CTA

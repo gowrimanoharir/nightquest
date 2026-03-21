@@ -18,12 +18,14 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, breakpoints } from '@/constants/theme';
 import { useContextStore, DarkSpotSite } from '@/store/context';
 import LocationPicker from '@/components/shared/LocationPicker';
 import DatePicker from '@/components/shared/DatePicker';
 import SpotMap from '@/components/stargaze/SpotMap';
 import { fetchSpots } from '@/services/api';
+import { useRouter } from 'expo-router';
 
 // ISO date helper
 function todayISO(): string {
@@ -243,8 +245,10 @@ const modalStyles = StyleSheet.create({
 
 // --- Main Screen ---
 export default function StargazeScreen() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const isTabletOrWeb = width >= breakpoints.tablet;
+  const insets = useSafeAreaInsets();
 
   const location = useContextStore((s) => s.location);
   const activeEvent = useContextStore((s) => s.active_event);
@@ -314,9 +318,8 @@ export default function StargazeScreen() {
       certified: _spot.certified,
       website: _spot.website,
     });
-    // Phase 3B: router.push('/spot-detail')
-    // For now show a placeholder action
-  }, [setActiveSpot]);
+    router.push('/spot-detail');
+  }, [setActiveSpot, router]);
 
   const visibleItems = useMemo(
     () => buildVisibleItems(selectedDate, activeEvent?.name),
@@ -389,11 +392,11 @@ export default function StargazeScreen() {
           contentContainerStyle={[
             styles.scrollContent,
             isTabletOrWeb && { paddingHorizontal: spacing['5xl'] },
+            { paddingBottom: spacing['7xl'] + insets.bottom + 16 },
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* What's Visible Tonight */}
-          <View style={styles.section}>
+          {/* What's Visible Tonight */}          <View style={styles.section}>
             <Text style={styles.sectionTitle}>{"What's Visible Tonight"}</Text>
             <View style={styles.visibleCard}>
               {visibleItems.map((item) => (

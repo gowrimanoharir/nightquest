@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, breakpoints } from '@/constants/theme';
 import { CelestialEvent, EventType } from '@/services/api';
 import { useContextStore } from '@/store/context';
@@ -89,6 +90,7 @@ export default function EventDetail({ event }: EventDetailProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isWeb = width >= breakpoints.web;
+  const insets = useSafeAreaInsets();
   const setActiveEvent = useContextStore((s) => s.setActiveEvent);
   const setDate = useContextStore((s) => s.setDate);
   const setTab = useContextStore((s) => s.setTab);
@@ -180,7 +182,10 @@ export default function EventDetail({ event }: EventDetailProps) {
         // Single-column mobile/tablet
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: spacing['7xl'] + insets.bottom + 16 },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {mainContent}

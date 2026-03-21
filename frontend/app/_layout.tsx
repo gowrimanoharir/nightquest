@@ -149,6 +149,14 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: colors.background.primary },
             }}
           />
+          <Stack.Screen
+            name="spot-detail"
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+              contentStyle: { backgroundColor: colors.background.primary },
+            }}
+          />
           </Stack>
         </SafeAreaView>
       </View>
