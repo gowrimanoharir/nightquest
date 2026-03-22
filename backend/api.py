@@ -3,19 +3,22 @@ FastAPI server + all endpoints.
 Phase 1: POST /api/events (Celestial Events in structured mode); CORS for local frontend.
 Phase 3A: POST /api/spots (Dark Sky Location Agent in structured mode).
 Phase 3B: POST /api/conditions; /api/spots now re-ranks by composite conditions score.
+Phase 4: POST /api/chat (Agno Team orchestrator); GET /api/prompts (context-driven).
 """
 from datetime import datetime, timezone
 import asyncio
 import os
+from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from schemas import (
     EventsRequest, EventsResponse, CelestialEvent,
     SpotsRequest, SpotsResponse, DarkSpotSite, ConditionsSummary,
     ConditionsRequest, ConditionsResponse, ConditionFactor,
+    ChatRequest, ChatResponse, PromptsResponse,
 )
 from sub_agents.celestial_events.tools import get_events_for_year
 from sub_agents.dark_sky_location.tools import dark_sky_lookup_tool
@@ -233,3 +236,108 @@ async def post_conditions(request: ConditionsRequest) -> ConditionsResponse:
         ai_take=cond["ai_take"],
         data_type=cond["data_type"],
     )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/chat  (Phase 4)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def post_chat(request: ChatRequest) -> ChatResponse:
+    """
+    Chat mode: Agno Team orchestrator. Reads full context, decides which agents to invoke,
+    returns conversational reply + optional context update.
+    Only sets context_updated: true when context fields actually changed.
+    """
+    from orchestrator import chat as orchestrator_chat  # lazy import — avoids startup cost
+
+    reply, context_updated, updated_context = await orchestrator_chat(
+        message=request.message,
+        history=request.history,
+        context=request.context,
+    )
+    return ChatResponse(
+        reply=reply,
+        context_updated=context_updated,
+        context=updated_context,
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /api/prompts  (Phase 4)
+# ---------------------------------------------------------------------------
+
+def _generate_prompts(
+    tab: Optional[str],
+    location: Optional[str],
+    event: Optional[str],
+    spot: Optional[str],
+) -> list[str]:
+    """
+    Return 3-4 context-driven suggested prompts.
+    Pure logic — no AI call needed for deterministic suggestions.
+    """
+    loc = location or "my location"
+
+    if tab == "stargaze" and spot and event:
+        return [
+            f"Is it worth driving to {spot} for the {event}?",
+            "What time should I arrive for the best viewing?",
+            "What should I bring for this observing session?",
+            "Will the weather be clear on this date?",
+        ]
+
+    if tab == "stargaze" and spot:
+        return [
+            f"How are conditions at {spot} tonight?",
+            "What time should I arrive?",
+            "Is it worth the drive this weekend?",
+            "What can I see from this location?",
+        ]
+
+    if tab == "explore" and event:
+        return [
+            f"Can I see the {event} from {loc}?",
+            f"Where should I go for the best view of the {event}?",
+            "What time is the best viewing window?",
+            "Do I need a telescope for this?",
+        ]
+
+    if tab == "stargaze" and location:
+        return [
+            f"What's visible tonight from {loc}?",
+            "Where are the nearest dark sky spots?",
+            "How is the moon tonight?",
+            "What time does the Milky Way rise tonight?",
+        ]
+
+    if location:
+        return [
+            "What's coming up in the sky this month?",
+            f"What's the best event I can see from {loc}?",
+            "When is the next full moon?",
+            "Are there any meteor showers coming up?",
+        ]
+
+    # No context at all — general discovery prompts
+    return [
+        "What celestial events are coming up this year?",
+        "What's the best stargazing event to see?",
+        "When is the next meteor shower?",
+        "Where should I go to see the night sky?",
+    ]
+
+
+@app.get("/api/prompts", response_model=PromptsResponse)
+async def get_prompts(
+    tab: Optional[str] = Query(default=None),
+    location: Optional[str] = Query(default=None),
+    event: Optional[str] = Query(default=None),
+    spot: Optional[str] = Query(default=None),
+) -> PromptsResponse:
+    """
+    Returns 3-4 context-driven suggested prompts.
+    Context passed as query params: tab, location, event, spot.
+    """
+    prompts = _generate_prompts(tab, location, event, spot)
+    return PromptsResponse(prompts=prompts)

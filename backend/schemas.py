@@ -158,3 +158,7 @@ class ConditionsResponse(BaseModel):
     moon: Optional[dict] = None
     ai_take: Optional[str] = None
     data_type: Optional[Literal["forecast", "historical_average"]] = None
+
+
+class PromptsResponse(BaseModel):
+    prompts: list[str]

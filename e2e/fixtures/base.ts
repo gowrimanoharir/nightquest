@@ -2,6 +2,8 @@ import { test as base, Page, expect } from '@playwright/test';
 import mockEvents from './events-mock.json';
 import mockSpots from './spots-mock.json';
 import mockConditions from './conditions-mock.json';
+import mockChat from './chat-mock.json';
+import mockPrompts from './prompts-mock.json';
 
 /** Lat/lng used for all mocked geolocation (London) */
 const MOCK_LOCATION = { latitude: 51.5074, longitude: -0.1278, accuracy: 10 };
@@ -44,6 +46,24 @@ export const test = base.extend<NightQuestFixtures>({
       });
     });
 
+    // Intercept POST /api/chat — return deterministic mock payload
+    await page.route('**/api/chat', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockChat),
+      });
+    });
+
+    // Intercept GET /api/prompts — return deterministic mock payload
+    await page.route('**/api/prompts**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockPrompts),
+      });
+    });
+
     // Also intercept GET /health (keeps backend optional during tests)
     await page.route('**/health', async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{"status":"ok"}' });
@@ -58,3 +78,5 @@ export { expect };
 export { mockEvents };
 export { mockSpots };
 export { mockConditions };
+export { mockChat };
+export { mockPrompts };

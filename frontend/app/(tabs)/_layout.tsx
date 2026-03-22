@@ -1,8 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { colors, spacing, borderRadius, typography, breakpoints, layout } from '@/constants/theme';
 import { useContextStore } from '@/store/context';
+import { useChatUIStore } from '@/store/chat';
 
 
 
@@ -22,7 +23,7 @@ function TabBar({ state, descriptors, navigation }: any) {
   const { width } = useWindowDimensions();
   const isWeb = width >= breakpoints.web;
   const setTab = useContextStore((s) => s.setTab);
-  const router = useRouter();
+  const openChat = useChatUIStore((s) => s.open);
 
   if (isWeb) return null; // Web uses top header navigation in _layout.tsx root
 
@@ -61,13 +62,13 @@ function TabBar({ state, descriptors, navigation }: any) {
     <View style={styles.tabBar}>
       {exploreRoute && renderRouteTab(exploreRoute, exploreIdx)}
 
-      {/* Elevated center chat button — Phase 4 wires this to open ChatSheet */}
+      {/* Elevated center chat button — opens ChatSheet */}
       <View style={styles.chatWrap}>
         <Pressable
           style={styles.chatBtn}
-          onPress={() => {
-            // Phase 4: open chat sheet
-          }}
+          onPress={openChat}
+          testID="chat-open-btn"
+          accessibilityLabel="Open AI chat"
         >
           <Text style={styles.chatIcon}>✦</Text>
         </Pressable>

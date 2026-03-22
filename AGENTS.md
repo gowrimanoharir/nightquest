@@ -22,7 +22,7 @@ an AI assistant for recommendations.
 | 2     | Explore Tab + Context Object   | ✅ Complete    | —        |
 | 3A    | Stargaze Tab: Spot Finder      | ✅ Complete    | 3553d2e  |
 | 3B    | Stargaze Tab: Conditions       | ✅ Complete    | —        |
-| 4     | AI Chat                        | 🔲 Pending     | —        |
+| 4     | AI Chat                        | ✅ Complete    | —        |
 | 5     | Full Integration + Polish      | 🔲 Pending     | —        |
 | 6     | Travel Planning                | 🔲 Pending     | —        |
 | 7     | Nice-to-Haves                  | 🔲 Optional    | —        |
@@ -111,7 +111,31 @@ an AI assistant for recommendations.
 - `frontend/store/context.ts` — `DarkSpotSite` extended with `distance`, `score`, `rank`
 - `frontend/services/api.ts` — `fetchSpots()` added
 
-### E2E Tests (Playwright)
+### Phase 4 — AI Chat
+- `backend/orchestrator.py` — Agno Team (coordinate mode) with all 3 sub-agents; `chat()` async
+  entry point; context preamble injected into every request; `<context_update>` block parsed from
+  response to detect context changes; ACTION line format for inline action cards
+- `backend/api.py` — `POST /api/chat` (calls orchestrator.chat, returns ChatResponse);
+  `GET /api/prompts` (pure-Python context-driven prompts, 3-4 per context state)
+- `backend/schemas.py` — `PromptsResponse` model added
+- `frontend/store/chat.ts` — minimal Zustand store for `isOpen` (open/close/toggle)
+- `frontend/components/chat/ActionCard.tsx` — tappable card for `view_stargaze` and `view_spot`
+  action types; parsed inline from AI message content
+- `frontend/components/chat/MessageBubble.tsx` — user (right, accent) / AI (left, surface) bubbles;
+  parses `[ACTION:type:label]` lines and renders ActionCard; star icon on first AI message
+- `frontend/components/chat/SuggestedPrompts.tsx` — chips from `GET /api/prompts`; disappear on
+  first send, reappear on context key change; non-fatal on fetch error
+- `frontend/components/chat/ChatSheet.tsx` — Reanimated v4 bottom sheet (mobile/tablet, 90% height,
+  drag-to-dismiss with startY tracking); persistent 320px right side panel (web ≥1280px);
+  context-aware subtitle; local chat history state; calls `applyContextUpdates` on context_updated
+- `frontend/app/_layout.tsx` — `GestureHandlerRootView` wraps entire app; web layout restructured
+  to flex row (Stack + ChatSheet side panel); mobile ChatSheet rendered as overlay outside SafeAreaView;
+  web header "Ask AI" button wired to `useChatUIStore.open()`
+- `frontend/app/(tabs)/_layout.tsx` — mobile chat button wired to `useChatUIStore.open()`
+- `e2e/fixtures/chat-mock.json` — mock `/api/chat` response with action card
+- `e2e/fixtures/prompts-mock.json` — mock `/api/prompts` response (4 prompts)
+- `e2e/fixtures/base.ts` — interceptors added for `POST /api/chat` and `GET /api/prompts**`
+- `e2e/tests/chat.spec.ts` — 13 tests covering Phase 4 validation criteria
 - `e2e/playwright.config.ts` — three viewports: web (1280px), tablet (820px), mobile (390px)
 - `e2e/fixtures/base.ts` — `appPage` fixture: mocks geolocation + `POST /api/events` +
   `POST /api/spots` + `GET /health`; all tests use mocks, no live backend needed
@@ -130,17 +154,13 @@ an AI assistant for recommendations.
 |------|--------|
 | `backend/sub_agents/weather_conditions/tools.py` | ✅ Complete — Phase 3B |
 | `backend/sub_agents/weather_conditions/agent.py` | ✅ Complete — Phase 3B |
-| `backend/orchestrator.py` | Stub — implement in Phase 4 |
-| `POST /api/conditions` | ✅ Live — Phase 3B |
-| `POST /api/chat` | Not yet added to `api.py` — Phase 4 |
-| `GET /api/prompts` | Not yet added to `api.py` — Phase 4 |
-| `frontend/components/stargaze/SpotDetail.tsx` | ✅ Complete — Phase 3B |
-| `frontend/components/stargaze/ConditionsRow.tsx` | ✅ Complete — Phase 3B |
-| `frontend/components/chat/ChatSheet.tsx` | Not created — Phase 4 |
-| `frontend/components/chat/MessageBubble.tsx` | Not created — Phase 4 |
-| `frontend/components/chat/SuggestedPrompts.tsx` | Not created — Phase 4 |
-| `frontend/components/chat/ActionCard.tsx` | Not created — Phase 4 |
-| Chat button in tab bar / web header | Wired stub — Phase 4 |
+| `backend/orchestrator.py` | ✅ Complete — Phase 4 |
+| `POST /api/chat` | ✅ Live — Phase 4 |
+| `GET /api/prompts` | ✅ Live — Phase 4 |
+| `frontend/components/chat/ChatSheet.tsx` | ✅ Complete — Phase 4 |
+| `frontend/components/chat/MessageBubble.tsx` | ✅ Complete — Phase 4 |
+| `frontend/components/chat/SuggestedPrompts.tsx` | ✅ Complete — Phase 4 |
+| `frontend/components/chat/ActionCard.tsx` | ✅ Complete — Phase 4 |
 | SpotCard condition icons | ✅ Real status-colored icons — Phase 3B |
 | SpotDetail "View Details" navigation | ✅ Navigates to `/spot-detail` — Phase 3B |
 
