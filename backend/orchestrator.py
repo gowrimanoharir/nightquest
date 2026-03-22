@@ -6,6 +6,7 @@ This module is used only by POST /api/chat.
 """
 import json
 import re
+from datetime import date
 from typing import Optional
 
 from agno.team import Team
@@ -28,6 +29,11 @@ _CHAT_INSTRUCTIONS = [
     "Dark Sky Location Agent (find dark sky spots near a location), and "
     "Weather & Conditions Agent (observing conditions: cloud cover, seeing, transparency).",
 
+    # Date discipline — most important rule first
+    "CRITICAL: Always use the EXACT year from TODAY'S DATE in the [CURRENT CONTEXT] section. "
+    "Never answer with events from past years. Never use your training data for specific event "
+    "dates — always call the Celestial Events Agent tool with the correct year.",
+
     # Context rules
     "If the context already contains a location — do NOT ask for it; use it directly.",
     "If the context already contains an active_event — do NOT ask which event; use it.",
@@ -41,14 +47,17 @@ _CHAT_INSTRUCTIONS = [
     "[ACTION:view_spot:SpotName]",
     "Only include an action line when it genuinely helps — not in every response.",
 
-    # Context update format
-    "If this conversation reveals new stateful info (user mentions a city, selects an event, "
-    "picks a date, or references a specific spot), append a context_update block at the very "
-    "end of your response in EXACTLY this format — nothing else after it:",
-    "<context_update>{...full updated context JSON...}</context_update>",
-    "The JSON inside must be a valid ContextObject with ALL fields present "
-    "(copy unchanged fields from current context). "
-    "If nothing changed, do NOT include the block.",
+    # Context update — VERY restrictive
+    "Only append a <context_update> block if the user's message EXPLICITLY states a NEW "
+    "location (e.g. 'I'm in Tokyo'), a NEW specific date, a NEW event they selected, or a "
+    "NEW specific spot they chose. Do NOT include it for general questions, "
+    "event listings, condition summaries, or any response where the user did not volunteer "
+    "new personal information. When in doubt — omit it.",
+    "If you do include a <context_update>, append it at the very end of your response in "
+    "EXACTLY this format:",
+    "<context_update>{...full updated context JSON with ALL fields...}</context_update>",
+    "All fields must be present — copy unchanged fields verbatim from [CURRENT CONTEXT]. "
+    "Never set location to null if a location was already in context.",
 ]
 
 
@@ -61,8 +70,11 @@ def _build_full_prompt(
     history: list[ChatMessage],
     context: Optional[ContextObject],
 ) -> str:
-    """Combine current context, recent history, and the new user message."""
+    """Combine today's date, current context, recent history, and the new user message."""
     parts: list[str] = []
+
+    # Always inject today's date first so the AI knows the correct year
+    parts.append(f"[TODAY'S DATE]\n{date.today().isoformat()}")
 
     if context:
         lines: list[str] = []
@@ -113,6 +125,10 @@ def _parse_response(
     """
     Strip <context_update>...</context_update> block from reply.
     Returns (reply_text, context_updated, updated_or_current_context).
+
+    Safeguards:
+    - Never overwrites an existing location with null.
+    - Discards the update if it is identical to the current context.
     """
     match = _CONTEXT_UPDATE_RE.search(raw)
     if not match:
@@ -122,6 +138,15 @@ def _parse_response(
     try:
         data = json.loads(match.group(1))
         updated = ContextObject.model_validate(data)
+
+        # Guard: never null out a location that already exists
+        if current_context and current_context.location and updated.location is None:
+            updated.location = current_context.location
+
+        # Guard: discard no-op updates
+        if current_context and updated.model_dump() == current_context.model_dump():
+            return reply, False, current_context
+
         return reply, True, updated
     except Exception:
         # Malformed JSON — discard update, keep original context
@@ -144,6 +169,7 @@ def make_chat_orchestrator() -> Team:
             make_weather_agent(),
         ],
         instructions=_CHAT_INSTRUCTIONS,
+        add_datetime_to_context=True,   # Agno injects current date into team context
         markdown=False,
         show_members_responses=False,
     )

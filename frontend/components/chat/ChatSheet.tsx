@@ -70,9 +70,10 @@ function useChatSubtitle() {
 interface ChatContentProps {
   onClose?: () => void;
   showCloseButton?: boolean;
+  extraHeaderButton?: React.ReactNode;
 }
 
-function ChatContent({ onClose, showCloseButton }: ChatContentProps) {
+function ChatContent({ onClose, showCloseButton, extraHeaderButton }: ChatContentProps) {
   const router = useRouter();
   const context = useContextStore();
   const applyContextUpdates = useContextStore((s) => s.applyContextUpdates);
@@ -182,6 +183,7 @@ function ChatContent({ onClose, showCloseButton }: ChatContentProps) {
             <Text style={styles.closeBtnText}>✕</Text>
           </Pressable>
         )}
+        {extraHeaderButton}
       </View>
 
       <View style={styles.divider} />
@@ -353,10 +355,27 @@ function MobileBottomSheet() {
 // ---------------------------------------------------------------------------
 // Web side panel (always visible, no trigger needed)
 // ---------------------------------------------------------------------------
+const WEB_PANEL_COLLAPSED = 320;
+const WEB_PANEL_EXPANDED  = 520;
+
 function WebSidePanel() {
+  const { panelExpanded, togglePanelExpanded } = useChatUIStore();
+  const panelWidth = panelExpanded ? WEB_PANEL_EXPANDED : WEB_PANEL_COLLAPSED;
+
   return (
-    <View style={styles.webPanel} testID="chat-side-panel">
-      <ChatContent showCloseButton={false} />
+    <View style={[styles.webPanel, { width: panelWidth }]} testID="chat-side-panel">
+      <ChatContent
+        showCloseButton={false}
+        extraHeaderButton={
+          <Pressable
+            style={styles.expandBtn}
+            onPress={togglePanelExpanded}
+            accessibilityLabel={panelExpanded ? 'Collapse chat panel' : 'Expand chat panel'}
+          >
+            <Text style={styles.expandBtnText}>{panelExpanded ? '⇥' : '⇤'}</Text>
+          </Pressable>
+        }
+      />
     </View>
   );
 }
@@ -560,12 +579,19 @@ const styles = StyleSheet.create({
 
   // --- Web side panel ---
   webPanel: {
-    width: 320,
     flexShrink: 0,
-    flexDirection: 'column',    // establish flex column so flex:1 children get height
-    alignSelf: 'stretch',       // fill the webRow's cross-axis height
+    flexDirection: 'column',
+    alignSelf: 'stretch',
     borderLeftWidth: 1,
     borderLeftColor: colors.border.default,
     backgroundColor: colors.background.elevated,
+  },
+  expandBtn: {
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  expandBtnText: {
+    fontSize: 14,
+    color: colors.text.secondary,
   },
 });
