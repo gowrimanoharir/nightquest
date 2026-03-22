@@ -33,6 +33,9 @@ _CHAT_INSTRUCTIONS = [
     "CRITICAL: Always use the EXACT year from TODAY'S DATE in the [CURRENT CONTEXT] section. "
     "Never answer with events from past years. Never use your training data for specific event "
     "dates — always call the Celestial Events Agent tool with the correct year.",
+    "CRITICAL: When listing upcoming celestial events, only include events that occur ON OR AFTER "
+    "today's date. Do not list events that have already passed this year unless the user "
+    "explicitly asks about past events or says 'show me what I missed'.",
 
     # Context rules
     "If the context already contains a location — do NOT ask for it; use it directly.",

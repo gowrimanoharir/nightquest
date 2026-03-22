@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, breakpoints, layout } from '@/constants/theme';
 import { useContextStore } from '@/store/context';
 import { useChatUIStore } from '@/store/chat';
@@ -24,6 +25,7 @@ function TabBar({ state, descriptors, navigation }: any) {
   const isWeb = width >= breakpoints.web;
   const setTab = useContextStore((s) => s.setTab);
   const openChat = useChatUIStore((s) => s.open);
+  const insets = useSafeAreaInsets();
 
   if (isWeb) return null; // Web uses top header navigation in _layout.tsx root
 
@@ -59,7 +61,7 @@ function TabBar({ state, descriptors, navigation }: any) {
   const stargazeIdx = state.routes.indexOf(stargazeRoute);
 
   return (
-    <View style={styles.tabBar}>
+    <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, spacing['4xl']) }]}>
       {exploreRoute && renderRouteTab(exploreRoute, exploreIdx)}
 
       {/* Elevated center chat button — opens ChatSheet */}
@@ -95,7 +97,6 @@ export default function TabsLayout() {
       {...(extraTabsProps as any)}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { display: 'none' },
       }}
       screenListeners={{
         tabPress: (_e) => {},
@@ -127,7 +128,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-around',
     paddingHorizontal: spacing['3xl'],
-    paddingBottom: spacing['4xl'],
     backgroundColor: colors.background.primary,
     borderTopWidth: 1,
     borderTopColor: colors.border.default,

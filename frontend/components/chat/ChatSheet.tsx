@@ -353,26 +353,58 @@ function MobileBottomSheet() {
 }
 
 // ---------------------------------------------------------------------------
-// Web side panel (always visible, no trigger needed)
+// Web side panel (always visible, drag left edge to resize)
 // ---------------------------------------------------------------------------
-const WEB_PANEL_COLLAPSED = 320;
-const WEB_PANEL_EXPANDED  = 520;
+const WEB_PANEL_MIN     = 280;
+const WEB_PANEL_DEFAULT = 360;
+const WEB_PANEL_MAX     = 700;
+const WEB_PANEL_WIDE    = 560;
 
 function WebSidePanel() {
-  const { panelExpanded, togglePanelExpanded } = useChatUIStore();
-  const panelWidth = panelExpanded ? WEB_PANEL_EXPANDED : WEB_PANEL_COLLAPSED;
+  const [panelWidth, setPanelWidth] = useState(WEB_PANEL_DEFAULT);
+  const panelWidthRef = useRef(WEB_PANEL_DEFAULT);
+
+  const handleResizeMouseDown = useCallback((e: any) => {
+    e.preventDefault();
+    const startX: number = e.clientX;
+    const startWidth: number = panelWidthRef.current;
+
+    const onMove = (ev: MouseEvent) => {
+      // Dragging left → larger delta → wider panel
+      const newWidth = Math.max(WEB_PANEL_MIN, Math.min(WEB_PANEL_MAX, startWidth + (startX - ev.clientX)));
+      panelWidthRef.current = newWidth;
+      setPanelWidth(newWidth);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, []);
+
+  const snapWidth = panelWidth < 450 ? WEB_PANEL_WIDE : WEB_PANEL_DEFAULT;
 
   return (
     <View style={[styles.webPanel, { width: panelWidth }]} testID="chat-side-panel">
+      {/* Invisible drag handle on left border — ew-resize cursor */}
+      <View
+        style={[styles.webResizeHandle, Platform.OS === 'web' && ({ cursor: 'ew-resize' } as object)]}
+        // @ts-expect-error – web-only mouse event on React Native View
+        onMouseDown={handleResizeMouseDown}
+      />
       <ChatContent
         showCloseButton={false}
         extraHeaderButton={
           <Pressable
             style={styles.expandBtn}
-            onPress={togglePanelExpanded}
-            accessibilityLabel={panelExpanded ? 'Collapse chat panel' : 'Expand chat panel'}
+            onPress={() => {
+              panelWidthRef.current = snapWidth;
+              setPanelWidth(snapWidth);
+            }}
+            accessibilityLabel={panelWidth < 450 ? 'Expand chat panel' : 'Collapse chat panel'}
           >
-            <Text style={styles.expandBtnText}>{panelExpanded ? '⇥' : '⇤'}</Text>
+            <Text style={styles.expandBtnText}>{panelWidth < 450 ? '⇤' : '⇥'}</Text>
           </Pressable>
         }
       />
@@ -585,6 +617,15 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderLeftColor: colors.border.default,
     backgroundColor: colors.background.elevated,
+  },
+  webResizeHandle: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 8,
+    zIndex: 10,
+    backgroundColor: 'transparent',
   },
   expandBtn: {
     padding: spacing.md,
