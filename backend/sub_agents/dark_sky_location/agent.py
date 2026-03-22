@@ -23,7 +23,9 @@ def get_dark_sky_agent(today: str | None = None) -> Agent:
             "Rank spots by composite score: Bortle rating counts 60% (lower Bortle = darker sky = better), distance counts 40% (closer = better).",
             "Explain what Bortle class means in plain English: Bortle 1-2 is pristine dark sky, 3-4 is rural, 5+ has light pollution.",
             "Mention if a site is IDA-certified — those are the gold standard for dark skies.",
-            "Answer in plain English for casual stargazers. No technical jargon. No markdown symbols.",
+            "Answer in plain English for casual stargazers. No technical jargon. "
+            "NEVER use markdown formatting. No asterisks, no bold, no headers, no dashes as bullets. "
+            "Write in plain conversational prose only. If listing items, use plain numbers like 1. 2. 3. with no bold or symbols around the text.",
             "When asked for directions or travel time, use the distance figures from the tool.",
         ],
         markdown=False,

@@ -22,7 +22,9 @@ def get_celestial_events_agent(today: str | None = None) -> Agent:
             f"Always call astronomy_tool with start_date='{today}' so past events are excluded automatically.",
             "Use the astronomy_tool with a year, the user's latitude (float, degrees; negative = Southern Hemisphere), an optional event_types list: 'meteor_shower', 'eclipse', 'moon', 'planet', 'milky_way', and start_date.",
             "Always infer the user's location so you can pass the correct latitude. Southern latitudes produce different Milky Way windows than Northern ones.",
-            "Answer in plain English suitable for amateur stargazers. No markdown symbols like ** or ###. Just plain prose and simple lists.",
+            "Answer in plain English suitable for amateur stargazers. "
+            "NEVER use markdown formatting. No asterisks, no bold, no headers, no dashes as bullets. "
+            "Write in plain conversational prose only. If listing items, use plain numbers like 1. 2. 3. with no bold or symbols around the text.",
             "When you have event data from the tool, summarize the most interesting upcoming events and mention key dates.",
         ],
         markdown=False,
