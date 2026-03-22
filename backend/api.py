@@ -242,6 +242,38 @@ async def post_conditions(request: ConditionsRequest) -> ConditionsResponse:
 # POST /api/chat  (Phase 4)
 # ---------------------------------------------------------------------------
 
+_OFF_TOPIC_REPLY = (
+    "I'm only able to help with stargazing and astronomy questions! "
+    "Is there something about the night sky I can help you with?"
+)
+
+_CLASSIFIER_SYSTEM = (
+    "You are a strict topic classifier. Reply with exactly one word: 'yes' or 'no'.\n"
+    "Is the user message related to astronomy, stargazing, celestial events, moon phases, "
+    "planets, meteor showers, eclipses, dark sky locations, night sky photography, "
+    "observatories, telescopes, or weather conditions for stargazing?\n"
+    "Answer 'yes' for borderline cases (e.g. light pollution, camping for stargazing, "
+    "astrophotography gear). Answer 'no' only when the topic is clearly unrelated."
+)
+
+
+async def _is_astronomy_related(message: str) -> bool:
+    """Lightweight pre-check: returns False if the message is clearly off-topic."""
+    from openai import AsyncOpenAI
+    client = AsyncOpenAI()
+    resp = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": _CLASSIFIER_SYSTEM},
+            {"role": "user", "content": message[:500]},  # cap to avoid token waste
+        ],
+        max_tokens=3,
+        temperature=0,
+    )
+    answer = resp.choices[0].message.content.strip().lower()
+    return answer.startswith("y")
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def post_chat(request: ChatRequest) -> ChatResponse:
     """
@@ -249,6 +281,13 @@ async def post_chat(request: ChatRequest) -> ChatResponse:
     returns conversational reply + optional context update.
     Only sets context_updated: true when context fields actually changed.
     """
+    if not await _is_astronomy_related(request.message):
+        return ChatResponse(
+            reply=_OFF_TOPIC_REPLY,
+            context_updated=False,
+            context=request.context,
+        )
+
     from orchestrator import chat as orchestrator_chat  # lazy import — avoids startup cost
 
     reply, context_updated, updated_context = await orchestrator_chat(
