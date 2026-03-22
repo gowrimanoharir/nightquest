@@ -185,12 +185,18 @@ def astronomy_tool(
     year: int,
     latitude: float,
     event_types: list[str] | None = None,
+    start_date: str | None = None,
 ) -> list[dict[str, Any]]:
     """
-    Get celestial events for a given year and observer latitude. Optionally filter by event_type.
+    Get celestial events for a given year and observer latitude.
     event_types: optional list of 'meteor_shower', 'eclipse', 'moon', 'planet', 'milky_way'.
+    start_date: ISO date string (YYYY-MM-DD). Defaults to today. Events strictly before this
+                date are excluded so the AI never lists past events.
     Returns list of events with name, date (ISO), type, description.
     """
+    from datetime import date as _date
+    cutoff = start_date or _date.today().isoformat()
+
     all_events: list[dict[str, Any]] = []
     all_events.extend(get_moon_phases_for_year(year))
     all_events.extend(get_solar_eclipses_for_year(year))
@@ -202,8 +208,9 @@ def astronomy_tool(
     if event_types:
         all_events = [e for e in all_events if e["type"] in event_types]
 
-    # Sort by date
+    # Sort by date, then drop anything before the cutoff
     all_events.sort(key=lambda e: (e["date"], e["name"]))
+    all_events = [e for e in all_events if e["date"] >= cutoff]
     return all_events
 
 

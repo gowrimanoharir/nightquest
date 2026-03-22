@@ -120,6 +120,24 @@ _CONTEXT_UPDATE_RE = re.compile(
     re.DOTALL,
 )
 
+# Agno coordinate-mode internals that leak into response.content
+# Pattern: {"member_id": "agent-name", "task": "..."}
+_DELEGATION_JSON_RE = re.compile(
+    r'\{[^{}]*?"member_id"\s*:\s*"[^"]*"[^{}]*?\}',
+    re.DOTALL,
+)
+# Lines that start with "Delegating..." (the coordinator narrating its delegation)
+_DELEGATING_LINE_RE = re.compile(r'^[ \t]*Delegat\w[^\n]*\n?', re.MULTILINE)
+
+
+def _clean_orchestrator_noise(text: str) -> str:
+    """Strip Agno coordinator delegation internals that leak into response.content."""
+    text = _DELEGATION_JSON_RE.sub('', text)
+    text = _DELEGATING_LINE_RE.sub('', text)
+    # Collapse runs of blank lines left behind
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
 
 def _parse_response(
     raw: str,
@@ -162,14 +180,15 @@ def _parse_response(
 
 def make_chat_orchestrator() -> Team:
     """Build a fresh NightQuest chat orchestrator (one per request)."""
+    today = date.today().isoformat()
     return Team(
         name="NightQuest Chat Orchestrator",
         mode="coordinate",
         model=OpenAIChat(id="gpt-4o-mini"),
         members=[
-            get_celestial_events_agent(),
-            get_dark_sky_agent(),
-            make_weather_agent(),
+            get_celestial_events_agent(today=today),
+            get_dark_sky_agent(today=today),
+            make_weather_agent(today=today),
         ],
         instructions=_CHAT_INSTRUCTIONS,
         add_datetime_to_context=True,   # Agno injects current date into team context
@@ -206,4 +225,5 @@ async def chat(
     if not raw:
         raw = "I'm sorry, I couldn't process that request. Please try again."
 
+    raw = _clean_orchestrator_noise(raw)
     return _parse_response(raw, context)

@@ -9,12 +9,15 @@ from agno.models.openai import OpenAIChat
 from sub_agents.weather_conditions.tools import weather_tool
 
 
-def make_weather_agent() -> Agent:
+def make_weather_agent(today: str | None = None) -> Agent:
+    from datetime import date as _date
+    today = today or _date.today().isoformat()
     return Agent(
         name="Weather & Conditions Agent",
         model=OpenAIChat(id="gpt-4o-mini"),
         tools=[weather_tool],
         instructions=(
+            f"Today's date is {today}. When no specific date is requested, use {today}. "
             "You are a stargazing conditions expert. "
             "When asked about observing conditions at a location, call weather_tool with the "
             "spot's lat/lon, date (YYYY-MM-DD), and timezone. "
