@@ -183,6 +183,36 @@ an AI assistant for recommendations.
 - `frontend/components/chat/ChatSheet.tsx` — empty chat state uses
   `<LogoMark size="lg" showName showTagline />`
 
+#### Layout / scroll fixes
+- `frontend/app/_layout.tsx` — container changed from `minHeight: '100vh'` to
+  `height: '100vh' + overflow: hidden` on web; fixes mobile web full-page scroll so inner
+  ScrollViews are the scroll container and all screen headers stay pinned
+- `frontend/app/(tabs)/explore.tsx` — screen header hidden on web (≥1280px) where WebHeader
+  already handles branding; wrapped in `width < breakpoints.web` guard
+- `frontend/app/(tabs)/stargaze.tsx` — same web header guard; added `isWeb` derived value
+
+#### AI Chat quality fixes (post-launch)
+- `backend/api.py` — `_is_astronomy_related()` now accepts `history: list = None`; passes last
+  3 messages to classifier so short follow-ups ("yes", "ok") are not blocked; classifier prompt
+  updated: conversational replies always pass when prior astronomy context exists;
+  `post_chat` passes `request.history` to the classifier
+- `backend/orchestrator.py` — `_CHAT_INSTRUCTIONS` fully rewritten with 8 canonical rules in
+  priority order: (1) absolute no-markdown, (2) astronomy-only scope, (3) clarifying questions
+  for vague queries, (4) direct answers when context sufficient, (5) 3–5 sentence max,
+  (6) always call Dark Sky Agent before claiming no spots / retry at 300km,
+  (7) mandatory `[ACTION:view_stargaze:View dark sky spots]` line when spots returned,
+  (8) night sky questions → call Celestial Events Agent immediately
+- `backend/sub_agents/dark_sky_location/agent.py` — explicit instruction to default
+  `max_distance_km=200` when user has not specified a distance
+- `frontend/components/chat/MessageBubble.tsx` — store `line.trim()` in action segment so
+  anchored regex label extraction works even if LLM emits leading whitespace
+- `frontend/components/chat/ChatSheet.tsx` — `view_stargaze` action card now also calls
+  `setTriggerSpotSearch(true)` and `setTab('stargaze')` before navigating
+- `frontend/store/context.ts` — added `trigger_spot_search: boolean` (UI-only flag, not part
+  of `ContextObject`, not reset by `applyContextUpdates`) + `setTriggerSpotSearch` setter
+- `frontend/app/(tabs)/stargaze.tsx` — `useEffect` watches `trigger_spot_search`; auto-calls
+  `doSearch` when flag is set then resets it; default `distanceKm` changed from 80 to 200
+
 ---
 
 ## What Is Stubbed / Not Yet Built
