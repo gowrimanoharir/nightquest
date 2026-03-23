@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.base,
-    ...(Platform.OS === 'web' ? { minHeight: '100vh' as any } : {}),
+    ...(Platform.OS === 'web' ? { height: '100vh' as any, overflow: 'hidden' as any } : {}),
   },
   starLayer: {
     position: 'absolute',
