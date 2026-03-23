@@ -81,6 +81,18 @@ _CHAT_INSTRUCTIONS = [
     "today's date. Do not list events that have already passed this year unless the user "
     "explicitly asks about past events or says 'show me what I missed'.",
 
+    # Night sky / agent usage rules
+    "When a user asks what the night sky is like tonight, what is visible right now, or any "
+    "variation of 'what can I see tonight' — this is a direct request. Call the Celestial Events "
+    "Agent for tonight's events and, if a spot is available in context, also call the Weather & "
+    "Conditions Agent. Always use the location from context. Never say you are unable to describe "
+    "the night sky — you have agents that can answer this immediately.",
+
+    "Never claim there are no dark sky spots near a location without first calling the Dark Sky "
+    "Location Agent to check. Always call the agent before making any claim about spot availability. "
+    "Many regions that seem urban (e.g. near New York City) have certified dark sky spots within "
+    "100-200 km — the Catskills, Adirondacks, and Pine Barrens are examples.",
+
     # Context rules
     "If the context already contains a location — do NOT ask for it; use it directly.",
     "If the context already contains an active_event — do NOT ask which event; use it.",

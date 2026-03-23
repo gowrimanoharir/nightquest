@@ -248,24 +248,40 @@ _OFF_TOPIC_REPLY = (
 )
 
 _CLASSIFIER_SYSTEM = (
-    "You are a strict topic classifier. Reply with exactly one word: 'yes' or 'no'.\n"
-    "Is the user message related to astronomy, stargazing, celestial events, moon phases, "
+    "You are a topic classifier for a stargazing app. Reply with exactly one word: 'yes' or 'no'.\n"
+    "Is the message related to astronomy, stargazing, celestial events, moon phases, "
     "planets, meteor showers, eclipses, dark sky locations, night sky photography, "
     "observatories, telescopes, or weather conditions for stargazing?\n"
     "Answer 'yes' for borderline cases (e.g. light pollution, camping for stargazing, "
-    "astrophotography gear). Answer 'no' only when the topic is clearly unrelated."
+    "astrophotography gear). Answer 'no' only when the topic is clearly unrelated to astronomy.\n"
+    "IMPORTANT: Short conversational replies ('yes', 'no', 'sure', 'ok', 'tell me more', "
+    "'sounds good', 'great') ALWAYS answer 'yes' when there is any prior conversation context — "
+    "they are follow-ups to whatever was already being discussed."
 )
 
 
-async def _is_astronomy_related(message: str) -> bool:
-    """Lightweight pre-check: returns False if the message is clearly off-topic."""
+async def _is_astronomy_related(message: str, history: list = None) -> bool:
+    """Lightweight pre-check: returns False if the message is clearly off-topic.
+    Passes last 3 history messages for context so short follow-ups are not blocked."""
     from openai import AsyncOpenAI
     client = AsyncOpenAI()
+
+    # Build user content: include recent history so classifier has conversation context
+    history_snippet = ""
+    if history:
+        recent = history[-3:]
+        history_snippet = "Conversation so far:\n" + "\n".join(
+            f"{'User' if m.role == 'user' else 'Assistant'}: {m.content[:200]}"
+            for m in recent
+        ) + "\n\n"
+
+    user_content = f"{history_snippet}New message: {message[:400]}"
+
     resp = await client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": _CLASSIFIER_SYSTEM},
-            {"role": "user", "content": message[:500]},  # cap to avoid token waste
+            {"role": "user", "content": user_content},
         ],
         max_tokens=3,
         temperature=0,
@@ -281,7 +297,7 @@ async def post_chat(request: ChatRequest) -> ChatResponse:
     returns conversational reply + optional context update.
     Only sets context_updated: true when context fields actually changed.
     """
-    if not await _is_astronomy_related(request.message):
+    if not await _is_astronomy_related(request.message, request.history):
         return ChatResponse(
             reply=_OFF_TOPIC_REPLY,
             context_updated=False,
