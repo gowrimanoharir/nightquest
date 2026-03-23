@@ -15,6 +15,7 @@ import { useAutoDetectLocation } from '@/components/shared/LocationPicker';
 import LocationPicker from '@/components/shared/LocationPicker';
 import MonthSection from '@/components/explore/MonthSection';
 import { CelestialEvent, EventType, fetchEvents } from '@/services/api';
+import LogoMark from '@/components/shared/LogoMark';
 
 
 
@@ -161,7 +162,7 @@ export default function ExploreScreen() {
     <View style={styles.screen}>
       {/* Screen header */}
       <View style={styles.header}>
-        <Text style={styles.logoText}>✦ NightQuest</Text>
+        <LogoMark size="sm" showName />
         <LocationPicker compact />
       </View>
 

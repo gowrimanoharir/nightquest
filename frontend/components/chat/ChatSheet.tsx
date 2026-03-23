@@ -196,7 +196,7 @@ function ChatContent({ onClose, showCloseButton, extraHeaderButton }: ChatConten
       >
         {messages.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateIcon}>✦</Text>
+            <LogoMark size="lg" showName showTagline />
             <Text style={styles.emptyStateText}>
               Ask anything about the night sky, upcoming events, or finding dark sky spots.
             </Text>

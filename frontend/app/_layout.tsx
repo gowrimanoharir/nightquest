@@ -18,6 +18,7 @@ import { useContextStore } from '@/store/context';
 import { useChatUIStore } from '@/store/chat';
 import { colors, spacing, typography, breakpoints } from '@/constants/theme';
 import ChatSheet from '@/components/chat/ChatSheet';
+import LogoMark from '@/components/shared/LogoMark';
 
 
 
@@ -35,8 +36,7 @@ function WebHeader() {
   return (
     <View style={webStyles.header}>
       <Pressable style={webStyles.logo} onPress={() => router.push('/(tabs)/explore')}>
-        <Text style={webStyles.logoStar}>✦</Text>
-        <Text style={webStyles.logoText}>NightQuest</Text>
+        <LogoMark size="sm" showName showTagline />
       </Pressable>
 
       <View style={webStyles.nav}>
