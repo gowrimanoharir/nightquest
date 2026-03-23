@@ -27,7 +27,6 @@
       "package": "com.nightquest.app"
     },
     "web": {
-      "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
