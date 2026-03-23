@@ -110,11 +110,16 @@ _CHAT_INSTRUCTIONS = [
     "re-fetch weather; summarise from context instead.",
 
     # Navigation action cards
-    "When it would help the user to navigate to a section of the app, include an action on "
-    "its own line using exactly this format (no extra spaces):",
-    "[ACTION:view_stargaze:View dark sky spots]",
-    "[ACTION:view_spot:SpotName]",
-    "Only include an action line when it genuinely helps — not in every response.",
+    "CRITICAL: Whenever the Dark Sky Location Agent returns one or more spots, you MUST include "
+    "this action line at the very end of your response, on its own line with no other text on that line: "
+    "[ACTION:view_stargaze:View dark sky spots] "
+    "This is mandatory — never list dark sky spots in chat without including this action line. "
+    "The action card is how the user navigates to see the spots on the map.",
+
+    "For navigating to a specific spot, include on its own line: "
+    "[ACTION:view_spot:SpotName] "
+    "Only include action lines in these two situations — not in every response. "
+    "Use exactly these formats with colon separators and square brackets — no extra spaces or characters.",
 
     # Context update — VERY restrictive
     "Only append a <context_update> block if the user's message EXPLICITLY states a NEW "

@@ -40,7 +40,7 @@ function parseContent(content: string): ParsedSegment[] {
       }
       segments.push({
         type: 'action',
-        text: line,
+        text: line.trim(),   // trimmed so the anchored regex in label extraction works
         actionType: match[1] as ActionType,
       });
     } else {
