@@ -160,11 +160,13 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Screen header */}
-      <View style={styles.header}>
-        <LogoMark size="sm" showName />
-        <LocationPicker compact />
-      </View>
+      {/* Screen header — hidden on web (≥1280px) where WebHeader in _layout.tsx takes over */}
+      {width < breakpoints.web && (
+        <View style={styles.header}>
+          <LogoMark size="sm" showName />
+          <LocationPicker compact />
+        </View>
+      )}
 
       {yearSelector}
       {filterPills}

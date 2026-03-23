@@ -248,6 +248,7 @@ export default function StargazeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isTabletOrWeb = width >= breakpoints.tablet;
+  const isWeb = width >= breakpoints.web;
   const insets = useSafeAreaInsets();
 
   const location = useContextStore((s) => s.location);
@@ -328,22 +329,24 @@ export default function StargazeScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
-      <View style={[
-        styles.header,
-        isTabletOrWeb && styles.headerTablet,
-        { paddingTop: Math.max(spacing['4xl'], insets.top + spacing.xl) },
-      ]}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.logoText}>⭐ Stargaze</Text>
-          {activeEvent && (
-            <Text style={styles.planningBanner}>
-              Planning for: {activeEvent.name}
-            </Text>
-          )}
+      {/* Header — hidden on web (≥1280px) where WebHeader in _layout.tsx takes over */}
+      {!isWeb && (
+        <View style={[
+          styles.header,
+          isTabletOrWeb && styles.headerTablet,
+          { paddingTop: Math.max(spacing['4xl'], insets.top + spacing.xl) },
+        ]}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.logoText}>⭐ Stargaze</Text>
+            {activeEvent && (
+              <Text style={styles.planningBanner}>
+                Planning for: {activeEvent.name}
+              </Text>
+            )}
+          </View>
+          <LocationPicker compact />
         </View>
-        <LocationPicker compact />
-      </View>
+      )}
 
       {/* Date picker */}
       <View style={[styles.datePicker, isTabletOrWeb && styles.datePickerTablet]}>
