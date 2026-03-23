@@ -126,8 +126,10 @@ an AI assistant for recommendations.
 - `frontend/components/chat/SuggestedPrompts.tsx` — chips from `GET /api/prompts`; disappear on
   first send, reappear on context key change; non-fatal on fetch error
 - `frontend/components/chat/ChatSheet.tsx` — Reanimated v4 bottom sheet (mobile/tablet, 90% height,
-  drag-to-dismiss with startY tracking); persistent 320px right side panel (web ≥1280px);
-  context-aware subtitle; local chat history state; calls `applyContextUpdates` on context_updated
+  drag-to-dismiss with startY tracking); persistent right side panel (web ≥1280px, resizable
+  280–700px by dragging left edge, snap expand/collapse toggle); context-aware subtitle;
+  local chat history state; calls `applyContextUpdates` on context_updated; Enter-to-send on web
+  (Shift+Enter inserts newline); themed scrollbar on chat input
 - `frontend/app/_layout.tsx` — `GestureHandlerRootView` wraps entire app; web layout restructured
   to flex row (Stack + ChatSheet side panel); mobile ChatSheet rendered as overlay outside SafeAreaView;
   web header "Ask AI" button wired to `useChatUIStore.open()`
@@ -146,6 +148,41 @@ an AI assistant for recommendations.
 - `e2e/tests/event-detail.spec.ts` — event detail navigation, back button
 - `e2e/tests/stargaze.spec.ts` — full Phase 3A validation (20 tests)
 
+### Phase 4 Polish — AI Chat Quality + Branding
+
+#### AI Chat fixes
+- `backend/orchestrator.py` — `_clean_orchestrator_noise()` strips Agno coordinator delegation
+  JSON (`{"member_id":...}`) and "Delegating…" lines from responses; off-topic guardrail added
+  to `_CHAT_INSTRUCTIONS`; no-markdown, conversational tone, 3–5 sentence instructions added;
+  `make_chat_orchestrator()` now passes `today = date.today().isoformat()` to all sub-agent factories
+- `backend/api.py` — `_is_astronomy_related()` input-side classifier (gpt-4o-mini, max_tokens=3,
+  temperature=0) runs before the orchestrator and returns a polite decline for off-topic messages;
+  exceptions propagate naturally (no fail-open)
+- `backend/sub_agents/celestial_events/tools.py` — `astronomy_tool` gains `start_date: str | None`
+  param (defaults to today); filters all returned events to `>= cutoff` date
+- `backend/sub_agents/celestial_events/agent.py` — factory accepts `today: str`; first instruction
+  injects today's date; instructs agent to always pass `start_date=today`; `markdown=False`
+- `backend/sub_agents/dark_sky_location/agent.py` — same `today` injection; `markdown=False`
+- `backend/sub_agents/weather_conditions/agent.py` — same `today` injection; instructs agent to
+  use today when no date specified; `markdown=False`
+
+#### Branding
+- `frontend/components/shared/LogoMark.tsx` — new reusable brand component; sizes sm/md/lg;
+  web renders `/favicon.svg` via `<Image>`; native falls back to styled ✦ view; props:
+  `size`, `showName`, `showTagline`, `tagline` (default: "Your night sky awaits")
+- `frontend/public/favicon.svg` — 32×32 ringed planet SVG: dark rounded rect, amber planet
+  gradient, 3 paired ring ellipses (light/dark gap/light) with back/front clip-path depth trick
+- `frontend/assets/logo.svg` — full 440×120 horizontal wordmark: planet mark (100×100) +
+  "NightQuest" in Space Grotesk + tagline in DM Sans
+- `frontend/app/+html.tsx` — `<title>NightQuest — Your night sky awaits</title>`; meta
+  description updated; `<link rel="icon" href="/favicon.svg" type="image/svg+xml" />`
+- `frontend/app.json` — removed `web.favicon` key so Expo no longer injects the old
+  `assets/favicon.png` link that was overriding the SVG favicon from `+html.tsx`
+- `frontend/app/_layout.tsx` — web nav bar uses `<LogoMark size="sm" showName showTagline />`
+- `frontend/app/(tabs)/explore.tsx` — mobile screen header uses `<LogoMark size="sm" showName />`
+- `frontend/components/chat/ChatSheet.tsx` — empty chat state uses
+  `<LogoMark size="lg" showName showTagline />`
+
 ---
 
 ## What Is Stubbed / Not Yet Built
@@ -154,13 +191,15 @@ an AI assistant for recommendations.
 |------|--------|
 | `backend/sub_agents/weather_conditions/tools.py` | ✅ Complete — Phase 3B |
 | `backend/sub_agents/weather_conditions/agent.py` | ✅ Complete — Phase 3B |
-| `backend/orchestrator.py` | ✅ Complete — Phase 4 |
+| `backend/orchestrator.py` | ✅ Complete — Phase 4 + Polish |
 | `POST /api/chat` | ✅ Live — Phase 4 |
 | `GET /api/prompts` | ✅ Live — Phase 4 |
-| `frontend/components/chat/ChatSheet.tsx` | ✅ Complete — Phase 4 |
+| `frontend/components/chat/ChatSheet.tsx` | ✅ Complete — Phase 4 + Polish |
 | `frontend/components/chat/MessageBubble.tsx` | ✅ Complete — Phase 4 |
 | `frontend/components/chat/SuggestedPrompts.tsx` | ✅ Complete — Phase 4 |
 | `frontend/components/chat/ActionCard.tsx` | ✅ Complete — Phase 4 |
+| `frontend/components/shared/LogoMark.tsx` | ✅ Complete — Phase 4 Polish |
+| `frontend/public/favicon.svg` | ✅ Complete — Phase 4 Polish |
 | SpotCard condition icons | ✅ Real status-colored icons — Phase 3B |
 | SpotDetail "View Details" navigation | ✅ Navigates to `/spot-detail` — Phase 3B |
 
@@ -200,20 +239,20 @@ Request:  { location: Location, date: string, event_type?: string, distance_km?:
 Response: { spots: DarkSpotSite[] }   // each spot has distance, score, rank fields
 ```
 
-### POST /api/conditions 🔲 Phase 3B
+### POST /api/conditions ✅ Live
 ```
 Request:  { spot: { lat, lon }, date: string, timezone: string }
 Response: { score: int, label: string, factors: ConditionFactor[], moon: object,
             ai_take: string, data_type: "forecast"|"historical_average" }
 ```
 
-### POST /api/chat 🔲 Phase 4
+### POST /api/chat ✅ Live
 ```
 Request:  { message: string, history: ChatMessage[], context: ContextObject }
 Response: { reply: string, context_updated: bool, context: ContextObject }
 ```
 
-### GET /api/prompts 🔲 Phase 4
+### GET /api/prompts ✅ Live
 ```
 Request:  context fields as query params (tab, location, event, spot)
 Response: { prompts: string[] }
@@ -263,14 +302,17 @@ nightquest/
 │   ├── components/
 │   │   ├── explore/              ← ✅ complete
 │   │   ├── stargaze/             ← SpotCard ✅, SpotMap ✅; SpotDetail 🔲 (3B)
-│   │   ├── chat/                 ← 🔲 all Phase 4
+│   │   ├── chat/                 ← ✅ Phase 4 complete
 │   │   └── shared/
 │   │       ├── StarBackground.tsx ← ✅
 │   │       ├── LocationPicker.tsx ← ✅
-│   │       └── DatePicker.tsx    ← ✅ (3A)
+│   │       ├── DatePicker.tsx    ← ✅ (3A)
+│   │       └── LogoMark.tsx      ← ✅ (4 Polish) planet mark + wordmark + tagline
 │   ├── constants/theme.ts        ← single source for all design tokens
 │   ├── store/context.ts          ← Zustand context store
-│   └── services/api.ts           ← all API calls live here
+│   ├── services/api.ts           ← all API calls live here
+│   ├── public/favicon.svg        ← ✅ SVG planet mark; served at /favicon.svg by Metro
+│   └── assets/logo.svg           ← ✅ full horizontal wordmark SVG (reference asset)
 └── e2e/
     ├── playwright.config.ts
     ├── fixtures/
