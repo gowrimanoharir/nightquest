@@ -260,7 +260,7 @@ export default function StargazeScreen() {
   const setTriggerSpotSearch = useContextStore((s) => s.setTriggerSpotSearch);
 
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
-  const [distanceKm, setDistanceKm] = useState(80);
+  const [distanceKm, setDistanceKm] = useState(200);
   const [modalVisible, setModalVisible] = useState(false);
   const [spots, setLocalSpots] = useState<DarkSpotSite[]>([]);
   const [loading, setLoading] = useState(false);
@@ -273,13 +273,13 @@ export default function StargazeScreen() {
   }, [contextDate]);
 
   // Auto-trigger search when arriving from Explore with active_event.
-  // distanceKm is intentionally excluded — we want the initial default (80km),
+  // distanceKm is intentionally excluded — we want the initial default (200km),
   // not to re-run every time the user adjusts the slider.
   const autoTriggered = useRef(false);
   useEffect(() => {
     if (activeEvent && location && !autoTriggered.current) {
       autoTriggered.current = true;
-      doSearch(80);
+      doSearch(200);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeEvent, location]);
