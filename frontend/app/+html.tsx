@@ -10,6 +10,10 @@ export default function HTML({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <title>NightQuest — Your night sky awaits</title>
+        <meta name="description" content="Your night sky awaits. Discover celestial events, locate dark sky spots, and plan your perfect stargazing night with AI-powered guidance." />
+        {/* SVG favicon — crisp at all sizes, themed to match the app */}
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{
           __html: `

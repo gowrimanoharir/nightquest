@@ -42,6 +42,7 @@ import type { ChatMessage } from '@/services/api';
 import type { ActionType } from './ActionCard';
 import MessageBubble from './MessageBubble';
 import SuggestedPrompts from './SuggestedPrompts';
+import LogoMark from '@/components/shared/LogoMark';
 
 // ---------------------------------------------------------------------------
 // Subtitle helper
@@ -168,9 +169,7 @@ function ChatContent({ onClose, showCloseButton, extraHeaderButton }: ChatConten
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.headerIconWrap}>
-            <Text style={styles.headerIcon}>✦</Text>
-          </View>
+          <LogoMark size="sm" />
           <View>
             <Text style={styles.headerTitle}>NightQuest AI</Text>
             <Text style={styles.headerSubtitle} numberOfLines={1}>
@@ -234,7 +233,13 @@ function ChatContent({ onClose, showCloseButton, extraHeaderButton }: ChatConten
       >
         <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, spacing['3xl']) }]}>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              Platform.OS === 'web' && ({
+                scrollbarWidth: 'thin',
+                scrollbarColor: `${colors.border.default} transparent`,
+              } as object),
+            ]}
             value={inputText}
             onChangeText={setInputText}
             placeholder="Ask about the night sky…"
@@ -243,6 +248,15 @@ function ChatContent({ onClose, showCloseButton, extraHeaderButton }: ChatConten
             maxLength={500}
             returnKeyType="send"
             onSubmitEditing={() => sendMessage(inputText)}
+            onKeyPress={(e) => {
+              if (Platform.OS === 'web') {
+                const ev = e.nativeEvent as any;
+                if (ev.key === 'Enter' && !ev.shiftKey) {
+                  e.preventDefault();
+                  sendMessage(inputText);
+                }
+              }
+            }}
             editable={!isSending}
             testID="chat-input"
           />
@@ -445,18 +459,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xl,
     flex: 1,
-  },
-  headerIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(167,139,250,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerIcon: {
-    fontSize: 16,
-    color: colors.celestial.ai,
   },
   headerTitle: {
     ...typography.scale.label.large,
