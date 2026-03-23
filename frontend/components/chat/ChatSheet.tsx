@@ -78,6 +78,8 @@ function ChatContent({ onClose, showCloseButton, extraHeaderButton }: ChatConten
   const router = useRouter();
   const context = useContextStore();
   const applyContextUpdates = useContextStore((s) => s.applyContextUpdates);
+  const setTriggerSpotSearch = useContextStore((s) => s.setTriggerSpotSearch);
+  const setTab = useContextStore((s) => s.setTab);
   const subtitle = useChatSubtitle();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -148,6 +150,8 @@ function ChatContent({ onClose, showCloseButton, extraHeaderButton }: ChatConten
   const handleActionPress = useCallback(
     (actionType: ActionType, label: string) => {
       if (actionType === 'view_stargaze') {
+        setTab('stargaze');
+        setTriggerSpotSearch(true);
         router.push('/(tabs)/stargaze');
         onClose?.();
       } else if (actionType === 'view_spot') {
@@ -159,7 +163,7 @@ function ChatContent({ onClose, showCloseButton, extraHeaderButton }: ChatConten
         }
       }
     },
-    [router, context.spots, onClose],
+    [router, context.spots, onClose, setTab, setTriggerSpotSearch],
   );
 
   const insets = useSafeAreaInsets();

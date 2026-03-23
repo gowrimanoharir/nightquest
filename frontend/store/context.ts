@@ -81,6 +81,9 @@ interface ContextStore extends ContextObject {
   setVisibilityConditions: (conditions: VisibilityConditions) => void;
   // Straight replace — called when any API response has context_updated: true
   applyContextUpdates: (updated: ContextObject) => void;
+  // UI-only flag: not part of ContextObject, not sent to backend, not reset by applyContextUpdates
+  trigger_spot_search: boolean;
+  setTriggerSpotSearch: (val: boolean) => void;
 }
 
 const defaultContext: ContextObject = {
@@ -113,5 +116,9 @@ export const useContextStore = create<ContextStore>((set) => ({
       spots: updated.spots,
       active_spot: updated.active_spot,
       visibility_conditions: updated.visibility_conditions,
+      // trigger_spot_search intentionally NOT reset here — UI-only flag
     }),
+
+  trigger_spot_search: false,
+  setTriggerSpotSearch: (trigger_spot_search) => set({ trigger_spot_search }),
 }));

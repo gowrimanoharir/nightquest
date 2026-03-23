@@ -256,6 +256,8 @@ export default function StargazeScreen() {
   const contextDate = useContextStore((s) => s.date);
   const setSpots = useContextStore((s) => s.setSpots);
   const setActiveSpot = useContextStore((s) => s.setActiveSpot);
+  const triggerSpotSearch = useContextStore((s) => s.trigger_spot_search);
+  const setTriggerSpotSearch = useContextStore((s) => s.setTriggerSpotSearch);
 
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
   const [distanceKm, setDistanceKm] = useState(80);
@@ -281,6 +283,15 @@ export default function StargazeScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeEvent, location]);
+
+  // Auto-trigger search when the AI chat action card sends the user to this tab.
+  useEffect(() => {
+    if (triggerSpotSearch && location) {
+      setTriggerSpotSearch(false);
+      doSearch(distanceKm);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triggerSpotSearch]);
 
   const doSearch = useCallback(async (km: number) => {
     if (!location) return;
