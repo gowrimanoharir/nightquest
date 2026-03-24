@@ -161,7 +161,7 @@ def get_milky_way_windows_for_year(year: int, latitude: float) -> list[dict[str,
             "closing": "Season Closing",
         }[phase]
         events.append({
-            "name": f"Milky Way {label_phase} ({hemisphere} Hemisphere)",
+            "name": "Milky Way Season",
             "date": f"{year}-{month:02d}-15",
             "type": "milky_way",
             "description": desc,

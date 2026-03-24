@@ -12,6 +12,7 @@ interface MonthSectionProps {
   defaultExpanded?: boolean;
   onEventPress: (event: CelestialEvent) => void;
   onAskAI?: (event: CelestialEvent) => void;
+  tonightConditions?: { score: number; label: string } | null;
 }
 
 export default function MonthSection({
@@ -20,6 +21,7 @@ export default function MonthSection({
   defaultExpanded = false,
   onEventPress,
   onAskAI,
+  tonightConditions,
 }: MonthSectionProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -41,6 +43,7 @@ export default function MonthSection({
               event={event}
               onPress={onEventPress}
               onAskAI={onAskAI}
+              tonightConditions={tonightConditions}
             />
           ))}
         </View>

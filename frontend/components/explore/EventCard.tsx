@@ -54,12 +54,20 @@ interface EventCardProps {
   event: CelestialEvent;
   onPress: (event: CelestialEvent) => void;
   onAskAI?: (event: CelestialEvent) => void;
+  tonightConditions?: { score: number; label: string } | null;
 }
 
-export default function EventCard({ event, onPress, onAskAI }: EventCardProps) {
+function conditionsColor(score: number): string {
+  if (score >= 60) return colors.status.good;
+  if (score >= 40) return colors.status.moderate;
+  return colors.status.poor;
+}
+
+const EventCard = React.memo(function EventCard({ event, onPress, onAskAI, tonightConditions }: EventCardProps) {
   const badge = getBadge(event.date);
   const isPast = badge === 'not_visible';
   const { month, day } = formatDate(event.date);
+  const showConditionsDot = badge === 'tonight' && tonightConditions != null;
 
   return (
     <Pressable
@@ -78,10 +86,15 @@ export default function EventCard({ event, onPress, onAskAI }: EventCardProps) {
           <Text style={[styles.category, isPast && styles.categoryPast]}>
             {EVENT_ICONS[event.type]}  {EVENT_LABELS[event.type].toUpperCase()}
           </Text>
-          <View style={[styles.badge, styles[`badge_${badge}`]]}>
-            <Text style={[styles.badgeText, styles[`badgeText_${badge}`]]}>
-              {BADGE_LABELS[badge]}
-            </Text>
+          <View style={styles.badgeRow}>
+            <View style={[styles.badge, styles[`badge_${badge}`]]}>
+              <Text style={[styles.badgeText, styles[`badgeText_${badge}`]]}>
+                {BADGE_LABELS[badge]}
+              </Text>
+            </View>
+            {showConditionsDot && (
+              <View style={[styles.conditionsDot, { backgroundColor: conditionsColor(tonightConditions!.score) }]} />
+            )}
           </View>
         </View>
 
@@ -102,7 +115,9 @@ export default function EventCard({ event, onPress, onAskAI }: EventCardProps) {
       </View>
     </Pressable>
   );
-}
+});
+
+export default EventCard;
 
 const styles = StyleSheet.create({
   card: {
@@ -229,6 +244,18 @@ const styles = StyleSheet.create({
   },
   badgeText_not_visible: {
     color: colors.text.disabled,
+  },
+
+  // Badge row: badge + optional conditions dot
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  conditionsDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 
   // AI nudge

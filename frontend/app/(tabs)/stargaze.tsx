@@ -256,6 +256,8 @@ export default function StargazeScreen() {
   const contextDate = useContextStore((s) => s.date);
   const setSpots = useContextStore((s) => s.setSpots);
   const setActiveSpot = useContextStore((s) => s.setActiveSpot);
+  const setVisibilityConditions = useContextStore((s) => s.setVisibilityConditions);
+  const contextSetDate = useContextStore((s) => s.setDate);
   const triggerSpotSearch = useContextStore((s) => s.trigger_spot_search);
   const setTriggerSpotSearch = useContextStore((s) => s.setTriggerSpotSearch);
 
@@ -264,8 +266,12 @@ export default function StargazeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [spots, setLocalSpots] = useState<DarkSpotSite[]>([]);
   const [loading, setLoading] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [spotsShown, setSpotsShown] = useState(false);
+
+  // Tracks whether the most recent date change was triggered by the user via DatePicker
+  const dateChangedByUser = useRef(false);
 
   // If arriving from Explore with context date set, use it
   useEffect(() => {
@@ -293,9 +299,19 @@ export default function StargazeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [triggerSpotSearch]);
 
+  // User changed date via DatePicker — sync context, invalidate conditions, re-score if spots loaded
+  const handleDateChange = useCallback((newDate: string) => {
+    dateChangedByUser.current = true;
+    setSelectedDate(newDate);
+    contextSetDate(newDate);
+    // Old conditions are for a different date — mark unavailable
+    setVisibilityConditions({ available: false });
+  }, [contextSetDate, setVisibilityConditions]);
+
   const doSearch = useCallback(async (km: number) => {
     if (!location) return;
     setLoading(true);
+    setRecalculating(false);
     setError(null);
     setModalVisible(false);
     try {
@@ -315,6 +331,34 @@ export default function StargazeScreen() {
       setLoading(false);
     }
   }, [location, selectedDate, activeEvent, setSpots]);
+
+  // Re-fetch conditions for already-loaded spots when user changes the date.
+  // Shows '—' on score boxes while recalculating; does NOT show the full loading spinner.
+  const doRecalculate = useCallback(async (km: number, date: string) => {
+    if (!location) return;
+    // Strip scores so SpotCard shows '—' while we wait
+    setLocalSpots((prev) => prev.map((s) => ({ ...s, score: undefined, conditions_summary: undefined, rank: undefined })));
+    setRecalculating(true);
+    try {
+      const res = await fetchSpots(location, date, activeEvent?.type, km);
+      setLocalSpots(res.spots);
+      setSpots(res.spots);
+    } catch {
+      // Silently ignore — old spots remain displayed without scores
+    } finally {
+      setRecalculating(false);
+    }
+  }, [location, activeEvent, setSpots]);
+
+  // Trigger recalculation when user changes date and spots are already shown
+  useEffect(() => {
+    if (!dateChangedByUser.current) return;
+    dateChangedByUser.current = false;
+    if (spotsShown && spots.length > 0 && location) {
+      doRecalculate(distanceKm, selectedDate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
 
   const handleSearch = useCallback(() => {
     doSearch(distanceKm);
@@ -361,12 +405,19 @@ export default function StargazeScreen() {
 
       {/* Date picker */}
       <View style={[styles.datePicker, isTabletOrWeb && styles.datePickerTablet]}>
-        <DatePicker value={selectedDate} onChange={setSelectedDate} />
+        <DatePicker value={selectedDate} onChange={handleDateChange} />
       </View>
 
       {/* Spot map fills remaining space when spots loaded */}
       {spotsShown && location ? (
         <View style={styles.mapContainer}>
+          {/* Subtle banner while date-change conditions are being recalculated */}
+          {recalculating && (
+            <View style={styles.recalcBanner}>
+              <ActivityIndicator color={colors.accent.primary} size="small" />
+              <Text style={styles.recalcText}>Recalculating scores…</Text>
+            </View>
+          )}
           {loading ? (
             <View style={styles.centered}>
               <ActivityIndicator color={colors.accent.primary} size="large" />
@@ -513,6 +564,22 @@ const styles = StyleSheet.create({
   // Map container
   mapContainer: {
     flex: 1,
+  },
+
+  // Recalculating banner
+  recalcBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.lg,
+    backgroundColor: colors.background.elevated,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.default,
+  },
+  recalcText: {
+    ...typography.scale.label.small,
+    color: colors.text.secondary,
   },
 
   // Scroll content

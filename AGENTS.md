@@ -23,7 +23,7 @@ an AI assistant for recommendations.
 | 3A    | Stargaze Tab: Spot Finder      | ✅ Complete    | 3553d2e  |
 | 3B    | Stargaze Tab: Conditions       | ✅ Complete    | —        |
 | 4     | AI Chat                        | ✅ Complete    | —        |
-| 5     | Full Integration + Polish      | 🔲 Pending     | —        |
+| 5     | Full Integration + Polish      | ✅ Complete    | —        |
 | 6     | Travel Planning                | 🔲 Pending     | —        |
 | 7     | Nice-to-Haves                  | 🔲 Optional    | —        |
 
@@ -213,6 +213,65 @@ an AI assistant for recommendations.
 - `frontend/app/(tabs)/stargaze.tsx` — `useEffect` watches `trigger_spot_search`; auto-calls
   `doSearch` when flag is set then resets it; default `distanceKm` changed from 80 to 200
 
+### Phase 5 — Full Integration + Polish
+
+#### 5.1 — Explore → Stargaze handoff ✅ (already complete, verified)
+- `EventDetail.handleFindDarkSkies` sets `active_event + date + tab`, navigates to stargaze
+- `stargaze.tsx` auto-triggers `doSearch(200)` via `autoTriggered` ref when `activeEvent && location`
+
+#### 5.2 — Conditions dot on "Tonight" event cards
+- `frontend/app/(tabs)/explore.tsx` — fetches conditions for user location + today on mount
+  (`fetchConditions`); stores in `tonightConditions` state; passed down to `MonthSection`
+- `frontend/components/explore/MonthSection.tsx` — threads `tonightConditions` prop to `EventCard`
+- `frontend/components/explore/EventCard.tsx` — adds `tonightConditions` prop + `conditionsColor()`;
+  shows a small status dot (good/moderate/poor) next to the "Tonight" badge
+
+#### 5.3 — Chat navigation polish ✅ (verified)
+- `handleActionPress` in `ChatSheet.tsx`: `view_stargaze` → setTab + setTriggerSpotSearch + navigate + close;
+  `view_spot` → navigate to spot-detail + close; chat history persists across tabs (ChatSheet
+  mounted at root, never unmounted during tab switches)
+
+#### 5.4 — "Ask AI" event flow
+- `frontend/components/explore/EventDetail.tsx` — `handleAskAI` now calls `openChat()` from
+  `useChatUIStore`; comment removed; `useChatUIStore` import added
+- `frontend/app/(tabs)/explore.tsx` — `handleAskAI` now sets `active_event` + calls `openChat()`;
+  was a no-op; `useChatUIStore` + `setActiveEvent` added
+
+#### 5.5 — Edge cases ✅ (verified)
+- No spots found: stargaze.tsx shows "No spots found nearby" + "Adjust distance" button ✅
+- Location denied: LocationPicker graceful chain (GPS → IP → timezone → null); UI shows
+  "Detecting your location…" with LocationPicker always available for manual entry ✅
+- Network errors: explore + stargaze both have error states with Retry button ✅
+- Conditions unavailable: SpotCard handles `conditions_summary: undefined` with `—` score ✅
+
+#### 5.6 — Responsive layout ✅ (verified)
+- Three breakpoints implemented throughout: mobile (<768px), tablet (≥768px), web (≥1280px)
+- SpotMap has dedicated NativeMap / MobileWebLayout / DesktopWebLayout components
+- WebHeader in _layout.tsx replaces screen headers on web; all screens guard with `width < breakpoints.web`
+
+#### 5.7 — Performance
+- `frontend/components/explore/EventCard.tsx` — wrapped with `React.memo` to prevent unnecessary
+  re-renders when MonthSection re-renders but event data is unchanged
+- MonthSections are collapsed by default (only current month expands) so initial render is O(months)
+  not O(all events); no FlatList needed given month-section lazy expand pattern
+
+#### Polish items (a–f)
+- **(a)** `backend/sub_agents/celestial_events/tools.py` — Milky Way event name simplified to
+  "Milky Way Season" (was hemisphere-specific label with phase)
+- **(b)** `frontend/components/shared/DatePicker.tsx` — ISO subtitle was already absent from JSX
+  (dead style); no change needed
+- **(c)** `frontend/components/shared/SplashOverlay.tsx` — new: first-launch splash overlay,
+  Saturn logo + "NightQuest" + "Your night sky awaits"; fade-in 400ms, auto-dismiss 2s or on tap,
+  fade-out 300ms; `frontend/app/_layout.tsx` tracks with `nq_splash_shown` AsyncStorage key
+- **(d)** `frontend/app/+html.tsx` — SVG favicon already present; no change needed
+- **(e)** `frontend/store/context.ts` — `persistContext()` + `hydrate()` added; all setters persist
+  `{ location, date, active_event, active_spot, spots }` to `nq_context_v1` AsyncStorage key;
+  `visibility_conditions` intentionally excluded (always stale on reopen); `_layout.tsx` calls
+  `hydrate()` before auto-detect on startup
+- **(f)** `frontend/app/(tabs)/stargaze.tsx` — `handleDateChange` + `doRecalculate` + `dateChangedByUser`
+  ref: when user changes date via DatePicker and spots are loaded, strips scores and re-fetches
+  conditions; shows "Recalculating scores…" banner with spinner; SpotCard shows `—` during wait
+
 ---
 
 ## What Is Stubbed / Not Yet Built
@@ -337,9 +396,10 @@ nightquest/
 │   │       ├── StarBackground.tsx ← ✅
 │   │       ├── LocationPicker.tsx ← ✅
 │   │       ├── DatePicker.tsx    ← ✅ (3A)
-│   │       └── LogoMark.tsx      ← ✅ (4 Polish) planet mark + wordmark + tagline
+│   │       ├── LogoMark.tsx      ← ✅ (4 Polish) planet mark + wordmark + tagline
+│   │       └── SplashOverlay.tsx ← ✅ (5 Polish c) first-launch splash overlay
 │   ├── constants/theme.ts        ← single source for all design tokens
-│   ├── store/context.ts          ← Zustand context store
+│   ├── store/context.ts          ← Zustand context store; AsyncStorage hydrate/persist (Phase 5)
 │   ├── services/api.ts           ← all API calls live here
 │   ├── public/favicon.svg        ← ✅ SVG planet mark; served at /favicon.svg by Metro
 │   └── assets/logo.svg           ← ✅ full horizontal wordmark SVG (reference asset)

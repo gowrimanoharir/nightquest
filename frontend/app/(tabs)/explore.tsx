@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -11,10 +11,11 @@ import {
 import { useRouter } from 'expo-router';
 import { colors, spacing, borderRadius, typography, breakpoints } from '@/constants/theme';
 import { useContextStore } from '@/store/context';
+import { useChatUIStore } from '@/store/chat';
 import { useAutoDetectLocation } from '@/components/shared/LocationPicker';
 import LocationPicker from '@/components/shared/LocationPicker';
 import MonthSection from '@/components/explore/MonthSection';
-import { CelestialEvent, EventType, fetchEvents } from '@/services/api';
+import { CelestialEvent, EventType, fetchEvents, fetchConditions } from '@/services/api';
 import LogoMark from '@/components/shared/LogoMark';
 
 
@@ -60,6 +61,8 @@ export default function ExploreScreen() {
   const isTabletOrWeb = width >= breakpoints.tablet;
 
   const location = useContextStore((s) => s.location);
+  const setActiveEvent = useContextStore((s) => s.setActiveEvent);
+  const openChat = useChatUIStore((s) => s.open);
   const { run: autoDetect } = useAutoDetectLocation();
 
   const [year, setYear] = useState(new Date().getFullYear());
@@ -68,9 +71,21 @@ export default function ExploreScreen() {
   const [events, setEvents] = useState<CelestialEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Conditions for tonight at the user's location — used to badge "Tonight" event cards
+  const [tonightConditions, setTonightConditions] = useState<{ score: number; label: string } | null>(null);
 
   // Auto-detect location on mount
   useEffect(() => { autoDetect(); }, []);
+
+  // Fetch tonight's conditions when location becomes available (once per session)
+  useEffect(() => {
+    if (!location) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const tz = location.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+    fetchConditions(location.lat, location.lon, today, tz)
+      .then((res) => setTonightConditions({ score: res.score, label: res.label }))
+      .catch(() => { /* Silently ignore — badge is optional */ });
+  }, [location?.lat, location?.lon]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch events when location or year changes
   useEffect(() => {
@@ -97,9 +112,10 @@ export default function ExploreScreen() {
     router.push({ pathname: '/event-detail', params: { data: JSON.stringify(event) } });
   }, [router]);
 
-  const handleAskAI = useCallback((_event: CelestialEvent) => {
-    // Phase 4: open chat with event context pre-loaded
-  }, []);
+  const handleAskAI = useCallback((event: CelestialEvent) => {
+    setActiveEvent({ name: event.name, date: event.date, type: event.type });
+    openChat();
+  }, [setActiveEvent, openChat]);
 
   const yearSelector = (
     <View style={styles.yearSelector}>
@@ -229,6 +245,7 @@ export default function ExploreScreen() {
                   defaultExpanded={month === currentMonthKey}
                   onEventPress={handleEventPress}
                   onAskAI={handleAskAI}
+                  tonightConditions={tonightConditions}
                 />
               );
             })

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -11,6 +11,7 @@ import {
 import { Stack, useRouter, usePathname } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import StarBackground from '@/components/shared/StarBackground';
 import LocationPicker from '@/components/shared/LocationPicker';
 import { useAutoDetectLocation } from '@/components/shared/LocationPicker';
@@ -19,6 +20,9 @@ import { useChatUIStore } from '@/store/chat';
 import { colors, spacing, typography, breakpoints } from '@/constants/theme';
 import ChatSheet from '@/components/chat/ChatSheet';
 import LogoMark from '@/components/shared/LogoMark';
+import SplashOverlay from '@/components/shared/SplashOverlay';
+
+const SPLASH_KEY = 'nq_splash_shown';
 
 
 
@@ -119,8 +123,23 @@ export default function RootLayout() {
   const { width } = useWindowDimensions();
   const isWeb = width >= breakpoints.web;
   const { run: autoDetect } = useAutoDetectLocation();
+  const hydrate = useContextStore((s) => s.hydrate);
+  const [showSplash, setShowSplash] = useState(false);
 
-  useEffect(() => { autoDetect(); }, []);
+  useEffect(() => {
+    // Hydrate persisted context before auto-detecting location
+    hydrate().then(() => autoDetect());
+
+    // Check if splash has been shown before
+    AsyncStorage.getItem(SPLASH_KEY).then((val) => {
+      if (!val) {
+        setShowSplash(true);
+        AsyncStorage.setItem(SPLASH_KEY, '1');
+      }
+    }).catch(() => {
+      // AsyncStorage unavailable — skip splash silently
+    });
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -203,6 +222,11 @@ export default function RootLayout() {
 
           {/* Mobile/Tablet: ChatSheet rendered outside SafeAreaView as an overlay */}
           {!isWeb && <ChatSheet />}
+
+          {/* First-launch splash overlay */}
+          {showSplash && (
+            <SplashOverlay onDismiss={() => setShowSplash(false)} />
+          )}
         </View>
       </SafeAreaProvider>
     </GestureHandlerRootView>

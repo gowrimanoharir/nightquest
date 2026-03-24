@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, breakpoints } from '@/constants/theme';
 import { CelestialEvent, EventType } from '@/services/api';
 import { useContextStore } from '@/store/context';
-
+import { useChatUIStore } from '@/store/chat';
 
 
 const EVENT_ICONS: Record<EventType, string> = {
@@ -94,6 +94,7 @@ export default function EventDetail({ event }: EventDetailProps) {
   const setActiveEvent = useContextStore((s) => s.setActiveEvent);
   const setDate = useContextStore((s) => s.setDate);
   const setTab = useContextStore((s) => s.setTab);
+  const openChat = useChatUIStore((s) => s.open);
 
   // Placeholder visibility factors — will be populated by backend in Phase 3B
   const visibilityFactors: VisibilityFactor[] = [
@@ -112,7 +113,7 @@ export default function EventDetail({ event }: EventDetailProps) {
 
   const handleAskAI = () => {
     setActiveEvent({ name: event.name, date: event.date, type: event.type });
-    // Phase 4 will open the chat sheet here
+    openChat();
   };
 
   const description = event.description ?? EVENT_DESCRIPTIONS[event.type];
