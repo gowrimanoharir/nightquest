@@ -37,7 +37,11 @@ const TIMEZONE_FALLBACK: Record<string, { name: string; lat: number; lon: number
 
 async function detectViaIP(): Promise<Location | null> {
   try {
-    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/geoip`);
+    const ipRes = await fetch('https://api.ipify.org?format=json');
+    if (!ipRes.ok) return null;
+    const { ip } = await ipRes.json();
+
+    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/geoip?ip=${encodeURIComponent(ip)}`);
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.lat || !data.lon) return null;

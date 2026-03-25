@@ -13,7 +13,7 @@ import os
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from schemas import (
@@ -155,17 +155,26 @@ async def get_bortle(
 # ---------------------------------------------------------------------------
 
 @app.get("/api/geoip")
-async def get_geoip():
+async def get_geoip(request: Request, ip: Optional[str] = Query(default=None)):
     """
     Server-side IP geolocation via ipwho.is.
-    Avoids browser CORS/privacy blocks by proxying through the backend.
+    Uses explicit `ip` query param if provided (sent by frontend after fetching
+    from ipify), otherwise falls back to X-Forwarded-For or the direct client IP.
     Returns simplified location fields or HTTP 503 on failure.
     """
     import httpx
     from fastapi import HTTPException
+
+    target_ip = (
+        ip
+        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else None)
+    )
+    url = f"https://ipwho.is/{target_ip}" if target_ip else "https://ipwho.is/"
+
     try:
         async with httpx.AsyncClient(timeout=8) as client:
-            r = await client.get("https://ipwho.is/")
+            r = await client.get(url)
             r.raise_for_status()
             data = r.json()
         return {
