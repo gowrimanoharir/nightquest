@@ -246,7 +246,7 @@ def get_milky_way_windows_for_year(
     year: int,
     latitude: float,
     longitude: float = 0.0,
-    min_alt: float = 20.0,
+    min_alt: float = 10.0,
 ) -> list[dict[str, Any]]:
     """
     Return Milky Way season events based on when the galactic center (Sgr A*)
@@ -254,7 +254,9 @@ def get_milky_way_windows_for_year(
     for the observer's exact latitude and longitude via astronomy.Horizon.
 
     Different latitudes produce different season dates. Observers above roughly
-    51°N (where the galactic center never reaches 20°) receive no events.
+    61°N (where the galactic center never reaches 10° at midnight) receive no events.
+    Observers at 10–20° altitude (e.g. Burlington/Toronto ~43°N, most of Europe)
+    receive events with descriptions noting the low horizon position.
     Returns up to five milestones: season open, rising, peak, late, closing.
     """
     obs = Observer(latitude, longitude, 0.0)
@@ -298,11 +300,17 @@ def get_milky_way_windows_for_year(
 
     # Peak — day of maximum altitude
     if peak_iso not in {m[0] for m in milestones}:
-        milestones.append((
-            peak_iso,
-            f"Peak season. Galactic core reaches {int(peak_alt)}\u00b0 altitude at midnight "
-            "— best dark-sky opportunity of the year from your latitude.",
-        ))
+        if peak_alt < 20.0:
+            peak_desc = (
+                f"Galactic core stays low on the horizon (~{int(peak_alt)}\u00b0 altitude "
+                "at midnight) — best viewed from dark sites with a clear southern horizon."
+            )
+        else:
+            peak_desc = (
+                f"Peak season. Galactic core reaches {int(peak_alt)}\u00b0 altitude at midnight "
+                "— best dark-sky opportunity of the year from your latitude."
+            )
+        milestones.append((peak_iso, peak_desc))
 
     # Late — three quarters through the season
     late_iso = above[(3 * n) // 4][0]
