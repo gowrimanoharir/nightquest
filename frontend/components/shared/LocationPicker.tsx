@@ -124,7 +124,7 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
     setSearchError(null);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=1`,
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=10&featureType=city&addressdetails=1`,
         { headers: { 'Accept-Language': 'en', 'User-Agent': 'NightQuest/1.0' } }
       );
       if (!res.ok) {
@@ -133,26 +133,20 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
         return;
       }
       const data = await res.json();
-      const PLACE_PRIORITY = ['city', 'town', 'village', 'hamlet', 'suburb', 'quarter'];
-      const items: Location[] = (data ?? [])
-        .sort((a: any, b: any) => {
-          const ai = PLACE_PRIORITY.indexOf(a.type);
-          const bi = PLACE_PRIORITY.indexOf(b.type);
-          const ar = ai === -1 ? PLACE_PRIORITY.length : ai;
-          const br = bi === -1 ? PLACE_PRIORITY.length : bi;
-          return ar - br;
-        })
-        .map((r: any) => {
-          const city = r.address?.city || r.address?.town || r.address?.village || r.address?.hamlet || r.name;
-          const country = r.address?.country;
-          const name = country ? `${city}, ${country}` : city;
-          return {
-            lat: parseFloat(r.lat),
-            lon: parseFloat(r.lon),
-            name,
-            source: 'manual' as const,
-          };
-        });
+      const items: Location[] = (data ?? []).map((r: any) => {
+        const city = r.address?.city || r.address?.town || r.address?.village || r.address?.hamlet || r.name;
+        const state = r.address?.state || r.address?.province || r.address?.region;
+        const country = r.address?.country;
+        let name = city;
+        if (state) name = `${name}, ${state}`;
+        if (country) name = `${name}, ${country}`;
+        return {
+          lat: parseFloat(r.lat),
+          lon: parseFloat(r.lon),
+          name,
+          source: 'manual' as const,
+        };
+      });
       setResults(items);
     } catch {
       setSearchError('Search temporarily unavailable, please try again in a moment');
