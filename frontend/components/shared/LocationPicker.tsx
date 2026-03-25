@@ -118,16 +118,21 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
     setSearching(true);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`,
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=1`,
         { headers: { 'Accept-Language': 'en', 'User-Agent': 'NightQuest/1.0' } }
       );
       const data = await res.json();
-      const items: Location[] = (data ?? []).map((r: any) => ({
-        lat: parseFloat(r.lat),
-        lon: parseFloat(r.lon),
-        name: r.display_name,
-        source: 'manual' as const,
-      }));
+      const items: Location[] = (data ?? []).map((r: any) => {
+        const city = r.address?.city || r.address?.town || r.address?.village || r.address?.hamlet || r.name;
+        const country = r.address?.country;
+        const name = country ? `${city}, ${country}` : city;
+        return {
+          lat: parseFloat(r.lat),
+          lon: parseFloat(r.lon),
+          name,
+          source: 'manual' as const,
+        };
+      });
       setResults(items);
     } catch {
       setResults([]);
