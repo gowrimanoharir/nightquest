@@ -5,6 +5,7 @@ Phase 3A: POST /api/spots (Dark Sky Location Agent in structured mode).
 Phase 3B: POST /api/conditions; /api/spots now re-ranks by composite conditions score.
 Phase 4: POST /api/chat (Agno Team orchestrator); GET /api/prompts (context-driven).
 Phase 6: GET /api/bortle — Bortle class at arbitrary lat/lon from World Atlas 2015 SQM data.
+         GET /api/geoip  — Server-side IP geolocation via ipwho.is (avoids browser CORS blocks).
 """
 from datetime import datetime, timezone
 import asyncio
@@ -147,6 +148,35 @@ async def get_bortle(
         return {"bortle": _population_to_bortle(max_pop)}
     except Exception:
         return {"bortle": None}
+
+
+# ---------------------------------------------------------------------------
+# GET /api/geoip  (Phase 6)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/geoip")
+async def get_geoip():
+    """
+    Server-side IP geolocation via ipwho.is.
+    Avoids browser CORS/privacy blocks by proxying through the backend.
+    Returns simplified location fields or HTTP 503 on failure.
+    """
+    import httpx
+    from fastapi import HTTPException
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get("https://ipwho.is/")
+            r.raise_for_status()
+            data = r.json()
+        return {
+            "lat": data["latitude"],
+            "lon": data["longitude"],
+            "city": data.get("city"),
+            "region": data.get("region"),
+            "country": data.get("country"),
+        }
+    except Exception:
+        raise HTTPException(status_code=503, detail={"error": "unavailable"})
 
 
 # ---------------------------------------------------------------------------
