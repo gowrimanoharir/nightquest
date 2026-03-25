@@ -126,7 +126,8 @@ def _build_full_prompt(
         if context.location:
             loc = context.location
             lines.append(f"User location: {loc.name or f'{loc.lat},{loc.lon}'}"
-                         + (f" (tz: {loc.timezone})" if loc.timezone else ""))
+                         + (f" (tz: {loc.timezone})" if loc.timezone else "")
+                         + (f" [source: {loc.source}]" if loc.source else ""))
         lines.append(f"Current tab: {context.tab}")
         if context.active_event:
             ev = context.active_event
