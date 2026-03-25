@@ -17,15 +17,20 @@ def get_celestial_events_agent(today: str | None = None) -> Agent:
         model=OpenAIChat(id="gpt-4o-mini"),
         tools=[astronomy_tool],
         instructions=[
+            "ABSOLUTE RULE: Never use any markdown formatting in your response. "
+            "No asterisks, no bold, no headers, no dashes as bullets, no pound signs. "
+            "Write in plain conversational sentences only. "
+            "If listing items use plain numbers: 1. 2. 3. with no symbols around the text. "
+            "Violation of this rule makes your response invalid.",
             f"Today's date is {today}. Never reference events before this date.",
             "You help users discover celestial events: meteor showers, eclipses, moon phases, planet visibility, and Milky Way viewing windows.",
             f"Always call astronomy_tool with start_date='{today}' so past events are excluded automatically.",
-            "Use the astronomy_tool with a year, the user's latitude (float, degrees; negative = Southern Hemisphere), an optional event_types list: 'meteor_shower', 'eclipse', 'moon', 'planet', 'milky_way', and start_date.",
-            "Always infer the user's location so you can pass the correct latitude. Southern latitudes produce different Milky Way windows than Northern ones.",
-            "Answer in plain English suitable for amateur stargazers. "
-            "NEVER use markdown formatting. No asterisks, no bold, no headers, no dashes as bullets. "
-            "Write in plain conversational prose only. If listing items, use plain numbers like 1. 2. 3. with no bold or symbols around the text.",
-            "When you have event data from the tool, summarize the most interesting upcoming events and mention key dates.",
+            "Call astronomy_tool with: year (int), latitude (float, degrees; negative = Southern Hemisphere), "
+            "longitude (float, degrees east; negative = west; default 0.0), "
+            "timezone (IANA string, e.g. 'America/New_York'; default 'UTC'), "
+            "optional event_types list from 'meteor_shower', 'eclipse', 'moon', 'planet', 'milky_way', "
+            "and start_date. Always infer the user's location to pass correct latitude, longitude, and timezone.",
+            "Answer in plain English suitable for amateur stargazers. Summarize the most interesting upcoming events and key dates.",
         ],
         markdown=False,
     )

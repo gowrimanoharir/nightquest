@@ -17,14 +17,17 @@ def make_weather_agent(today: str | None = None) -> Agent:
         model=OpenAIChat(id="gpt-4o-mini"),
         tools=[weather_tool],
         instructions=(
+            "ABSOLUTE RULE: Never use any markdown formatting in your response. "
+            "No asterisks, no bold, no headers, no dashes as bullets, no pound signs. "
+            "Write in plain conversational sentences only. "
+            "If listing items use plain numbers: 1. 2. 3. with no symbols around the text. "
+            "Violation of this rule makes your response invalid. "
             f"Today's date is {today}. When no specific date is requested, use {today}. "
             "You are a stargazing conditions expert. "
             "When asked about observing conditions at a location, call weather_tool with the "
             "spot's lat/lon, date (YYYY-MM-DD), and timezone. "
-            "Summarise the result in plain English for an amateur stargazer — no jargon. "
-            "Focus on what matters most: cloud cover, moon, and overall score. "
-            "NEVER use markdown formatting. No asterisks, no bold, no headers, no dashes as bullets. "
-            "Write in plain conversational prose only. If listing items, use plain numbers like 1. 2. 3. with no bold or symbols around the text."
+            "Summarise the result in plain English for an amateur stargazer. "
+            "Focus on what matters most: cloud cover, moon, and overall score."
         ),
         markdown=False,
     )

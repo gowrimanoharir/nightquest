@@ -44,9 +44,14 @@ async def post_events(request: EventsRequest) -> EventsResponse:
     Structured mode: fixed pipeline, deterministic JSON.
     Returns celestial events (meteor showers, eclipses, moon phases, planet, milky_way) for the given year and location.
     """
+    tz = request.location.timezone or _derive_timezone(
+        request.location.lat, request.location.lon
+    )
     events_raw = get_events_for_year(
         year=request.year,
         latitude=request.location.lat,
+        longitude=request.location.lon,
+        timezone=tz,
         filters=request.filters if request.filters else None,
     )
     events = [
