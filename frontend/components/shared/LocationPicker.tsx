@@ -108,19 +108,26 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Location[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const displayName = location?.name ?? (location ? `${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}` : 'Set location');
 
   // Fix 6.2: Nominatim fuzzy geocoding — handles partial names like "Atacama"
   const searchCities = useCallback(async (q: string) => {
-    if (q.length < 2) { setResults([]); return; }
+    if (q.length < 2) { setResults([]); setSearchError(null); return; }
     setSearching(true);
+    setSearchError(null);
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=1`,
         { headers: { 'Accept-Language': 'en', 'User-Agent': 'NightQuest/1.0' } }
       );
+      if (!res.ok) {
+        setSearchError('Search temporarily unavailable, please try again in a moment');
+        setResults([]);
+        return;
+      }
       const data = await res.json();
       const PLACE_PRIORITY = ['city', 'town', 'village', 'hamlet', 'suburb', 'quarter'];
       const items: Location[] = (data ?? [])
@@ -144,6 +151,7 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
         });
       setResults(items);
     } catch {
+      setSearchError('Search temporarily unavailable, please try again in a moment');
       setResults([]);
     } finally {
       setSearching(false);
@@ -231,7 +239,10 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
           </View>
 
           <ScrollView style={styles.results} keyboardShouldPersistTaps="handled">
-            {results.length === 0 && query.length >= 2 && !searching && (
+            {searchError && query.length >= 2 && !searching && (
+              <Text style={styles.noResults}>{searchError}</Text>
+            )}
+            {!searchError && results.length === 0 && query.length >= 2 && !searching && (
               <Text style={styles.noResults}>No results for &quot;{query}&quot;</Text>
             )}
             {results.map((loc, i) => (
