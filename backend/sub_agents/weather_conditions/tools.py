@@ -351,8 +351,17 @@ def _fetch_forecast(lat: float, lon: float, obs_date: date, timezone: str) -> di
 
 def _fetch_historical_avg(lat: float, lon: float, obs_date: date) -> dict:
     """
-    Fetch historical averages from Open-Meteo ERA5 archive for the same calendar date
-    over the 5 most recent complete years. Returns averaged values.
+    Fetch historical averages for the same calendar date over the 5 most recent
+    complete years. Returns averaged values.
+
+    Data sources (both requested with timezone=UTC so indices are UTC hours):
+    - years >= 2022: Historical Forecast API — supports windspeed_850hPa directly,
+      identical variable names to the live forecast API.
+    - years <  2022 (or on fetch failure): ERA5 archive API — uses windspeed_1000hPa
+      as a surface-level proxy for 850hPa (less accurate but widely available).
+
+    Night-time hour indices 20–23 always refer to 20:00–23:00 UTC because both
+    APIs are explicitly requested with timezone=UTC.
     """
     today = date.today()
     year = obs_date.year
@@ -376,43 +385,89 @@ def _fetch_historical_avg(lat: float, lon: float, obs_date: date) -> dict:
 
     all_vals: list[dict] = []
     for y in years_to_avg:
-        try:
-            archive_date = obs_date.replace(year=y)
-            params = {
-                "latitude": lat,
-                "longitude": lon,
-                "hourly": ",".join([
-                    "cloudcover", "visibility", "windspeed_10m",
-                    "windspeed_1000hPa", "temperature_2m", "relativehumidity_2m",
-                ]),
-                "start_date": archive_date.isoformat(),
-                "end_date": archive_date.isoformat(),
-                "timezone": "UTC",
-            }
-            r = httpx.get("https://archive-api.open-meteo.com/v1/archive",
-                          params=params, timeout=15)
-            r.raise_for_status()
-            d = r.json()["hourly"]
-            # Average the night-time hours (indices 20–23, i.e. 20:00–23:00 UTC)
-            night_idx = list(range(20, min(24, len(d["cloudcover"]))))
-            if not night_idx:
-                night_idx = [0]
+        archive_date = obs_date.replace(year=y)
+        fetched = False
 
-            def avg(key: str, fallback: float = 0.0) -> float:
-                vals = [d[key][i] for i in night_idx if d[key][i] is not None]
-                return sum(vals) / len(vals) if vals else fallback
+        # Historical Forecast API: officially available from 2022 onwards.
+        # Variable names are identical to the live forecast API (verified).
+        # Request timezone=UTC so hour indices 20-23 = 20:00-23:00 UTC.
+        if y >= 2022:
+            try:
+                params = {
+                    "latitude": lat,
+                    "longitude": lon,
+                    "hourly": ",".join([
+                        "cloudcover", "visibility", "windspeed_10m",
+                        "windspeed_850hPa", "temperature_2m", "relativehumidity_2m",
+                    ]),
+                    "start_date": archive_date.isoformat(),
+                    "end_date": archive_date.isoformat(),
+                    "timezone": "UTC",
+                }
+                r = httpx.get(
+                    "https://historical-forecast-api.open-meteo.com/v1/forecast",
+                    params=params, timeout=15,
+                )
+                r.raise_for_status()
+                d = r.json()["hourly"]
+                night_idx = list(range(20, min(24, len(d["cloudcover"]))))
+                if not night_idx:
+                    night_idx = [0]
 
-            all_vals.append({
-                "cloudcover": avg("cloudcover", 40.0),
-                "visibility": avg("visibility", 10_000.0),
-                "windspeed_10m": avg("windspeed_10m", 10.0),
-                # archive API uses windspeed_1000hPa as closest to 850hPa proxy
-                "windspeed_850hPa": avg("windspeed_1000hPa", 20.0),
-                "temperature_2m": avg("temperature_2m", 15.0),
-                "relativehumidity_2m": avg("relativehumidity_2m", 55.0),
-            })
-        except Exception:
-            continue  # skip bad years
+                def avg_hf(key: str, fallback: float = 0.0) -> float:
+                    vals = [d[key][i] for i in night_idx if d[key][i] is not None]
+                    return sum(vals) / len(vals) if vals else fallback
+
+                all_vals.append({
+                    "cloudcover": avg_hf("cloudcover", 40.0),
+                    "visibility": avg_hf("visibility", 10_000.0),
+                    "windspeed_10m": avg_hf("windspeed_10m", 10.0),
+                    "windspeed_850hPa": avg_hf("windspeed_850hPa", 20.0),
+                    "temperature_2m": avg_hf("temperature_2m", 15.0),
+                    "relativehumidity_2m": avg_hf("relativehumidity_2m", 55.0),
+                })
+                fetched = True
+            except Exception:
+                pass  # fall through to ERA5 archive below
+
+        # ERA5 archive API fallback: years before 2022, or if historical forecast failed.
+        # Uses windspeed_1000hPa as a surface-level proxy for 850hPa (less accurate).
+        # Request timezone=UTC so hour indices 20-23 = 20:00-23:00 UTC.
+        if not fetched:
+            try:
+                params = {
+                    "latitude": lat,
+                    "longitude": lon,
+                    "hourly": ",".join([
+                        "cloudcover", "visibility", "windspeed_10m",
+                        "windspeed_1000hPa", "temperature_2m", "relativehumidity_2m",
+                    ]),
+                    "start_date": archive_date.isoformat(),
+                    "end_date": archive_date.isoformat(),
+                    "timezone": "UTC",
+                }
+                r = httpx.get("https://archive-api.open-meteo.com/v1/archive",
+                              params=params, timeout=15)
+                r.raise_for_status()
+                d = r.json()["hourly"]
+                night_idx = list(range(20, min(24, len(d["cloudcover"]))))
+                if not night_idx:
+                    night_idx = [0]
+
+                def avg_era5(key: str, fallback: float = 0.0) -> float:
+                    vals = [d[key][i] for i in night_idx if d[key][i] is not None]
+                    return sum(vals) / len(vals) if vals else fallback
+
+                all_vals.append({
+                    "cloudcover": avg_era5("cloudcover", 40.0),
+                    "visibility": avg_era5("visibility", 10_000.0),
+                    "windspeed_10m": avg_era5("windspeed_10m", 10.0),
+                    "windspeed_850hPa": avg_era5("windspeed_1000hPa", 20.0),
+                    "temperature_2m": avg_era5("temperature_2m", 15.0),
+                    "relativehumidity_2m": avg_era5("relativehumidity_2m", 55.0),
+                })
+            except Exception:
+                continue  # skip bad years
 
     if not all_vals:
         return {
