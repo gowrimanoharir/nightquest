@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, breakpoints } from '@/constants/theme';
-import { CelestialEvent, ConditionsResponse, EventType, fetchConditions } from '@/services/api';
+import { CelestialEvent, ConditionsResponse, EventType, fetchBortle, fetchConditions } from '@/services/api';
 import { useContextStore } from '@/store/context';
 import { useChatUIStore } from '@/store/chat';
 
@@ -98,10 +98,10 @@ export default function EventDetail({ event }: EventDetailProps) {
   const setTab = useContextStore((s) => s.setTab);
   const openChat = useChatUIStore((s) => s.open);
   const location = useContextStore((s) => s.location);
-  const spots = useContextStore((s) => s.spots);
 
   const [visLoading, setVisLoading] = useState(false);
   const [visConditions, setVisConditions] = useState<ConditionsResponse | null>(null);
+  const [userBortle, setUserBortle] = useState<number | null>(null);
 
   const isHistorical = (() => {
     const today = new Date();
@@ -120,6 +120,11 @@ export default function EventDetail({ event }: EventDetailProps) {
       .catch(() => { /* keep Unknown on error */ })
       .finally(() => setVisLoading(false));
   }, [location?.lat, location?.lon, event.date]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!location) return;
+    fetchBortle(location.lat, location.lon).then(setUserBortle);
+  }, [location?.lat, location?.lon]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const visibilityFactors: VisibilityFactor[] = useMemo(() => {
     if (!visConditions) return [
@@ -144,13 +149,12 @@ export default function EventDetail({ event }: EventDetailProps) {
       : forecastLabel === 'Excellent' || forecastLabel === 'Good' ? 'good' :
         forecastLabel === 'Fair' ? 'moderate' : 'poor';
 
-    // Bortle — top ranked spot from stargaze context (if any)
-    const topSpot = spots?.[0];
-    const bortleValue = topSpot?.bortle_estimate != null
-      ? `Bortle ${topSpot.bortle_estimate}`
-      : 'Set a dark sky spot to see this';
-    const bortleStatus: VisibilityFactor['status'] = topSpot?.bortle_estimate != null
-      ? topSpot.bortle_estimate <= 3 ? 'good' : topSpot.bortle_estimate <= 5 ? 'moderate' : 'poor'
+    // Bortle — sky darkness at the user's current location (from light pollution data)
+    const bortleValue = userBortle != null
+      ? `Bortle ${userBortle}`
+      : 'Location data unavailable';
+    const bortleStatus: VisibilityFactor['status'] = userBortle != null
+      ? userBortle <= 3 ? 'good' : userBortle <= 5 ? 'moderate' : 'poor'
       : 'unknown';
 
     return [
@@ -159,7 +163,7 @@ export default function EventDetail({ event }: EventDetailProps) {
       { label: 'Forecast',              value: forecastValue,  status: forecastStatus },
       { label: 'Bortle rating',         value: bortleValue,    status: bortleStatus },
     ];
-  }, [visConditions, spots, isHistorical]);
+  }, [visConditions, userBortle, isHistorical]);
 
   const handleFindDarkSkies = () => {
     setActiveEvent({ name: event.name, date: event.date, type: event.type });

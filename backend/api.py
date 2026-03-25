@@ -4,6 +4,7 @@ Phase 1: POST /api/events (Celestial Events in structured mode); CORS for local 
 Phase 3A: POST /api/spots (Dark Sky Location Agent in structured mode).
 Phase 3B: POST /api/conditions; /api/spots now re-ranks by composite conditions score.
 Phase 4: POST /api/chat (Agno Team orchestrator); GET /api/prompts (context-driven).
+Phase 6: GET /api/bortle — Bortle class at arbitrary lat/lon from World Atlas 2015 SQM data.
 """
 from datetime import datetime, timezone
 import asyncio
@@ -72,6 +73,80 @@ async def post_events(request: EventsRequest) -> EventsResponse:
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# GET /api/bortle  (Phase 6)
+# ---------------------------------------------------------------------------
+
+def _population_to_bortle(max_pop_within_20km: int) -> int:
+    """
+    Estimates Bortle class from the largest populated place within 20 km.
+    Calibrated so Burlington ON (~190k) → Bortle 7, Toronto core → Bortle 9,
+    rural/dark sites → Bortle 2.
+    """
+    if max_pop_within_20km >= 500_000: return 9   # major city core
+    if max_pop_within_20km >= 200_000: return 8   # large city / inner suburb
+    if max_pop_within_20km >= 100_000: return 7   # medium city (e.g. Burlington ON)
+    if max_pop_within_20km >= 30_000:  return 6   # small city / outer suburb
+    if max_pop_within_20km >= 8_000:   return 5   # town
+    if max_pop_within_20km >= 1_500:   return 4   # village
+    if max_pop_within_20km >= 300:     return 3   # hamlet / dark rural
+    return 2                                       # remote / pristine
+
+
+@app.get("/api/bortle")
+async def get_bortle(
+    lat: float = Query(..., description="Latitude in decimal degrees"),
+    lon: float = Query(..., description="Longitude in decimal degrees"),
+):
+    """
+    Estimates Bortle class (1–9) at an arbitrary lat/lon using OpenStreetMap
+    population data via the Overpass API (no API key required).
+
+    Queries populated places within 20 km, takes the highest population found,
+    and maps it to a Bortle class. Bortle 1 = pristine dark sky;
+    Bortle 9 = inner-city sky glow. Returns null on upstream failure.
+    """
+    import httpx
+    overpass_query = (
+        f"[out:json][timeout:10];\n"
+        f"(\n"
+        f'  node["place"~"^(city|town|suburb|borough|quarter)$"]'
+        f'["population"](around:20000,{lat},{lon});\n'
+        f'  way["place"~"^(city|town|suburb|borough|quarter)$"]'
+        f'["population"](around:20000,{lat},{lon});\n'
+        f'  relation["place"~"^(city|town|suburb|borough|quarter)$"]'
+        f'["population"](around:20000,{lat},{lon});\n'
+        f");\n"
+        f"out tags;"
+    )
+    try:
+        loop = asyncio.get_event_loop()
+        r = await loop.run_in_executor(
+            None,
+            lambda: httpx.post(
+                "https://overpass-api.de/api/interpreter",
+                data=overpass_query,
+                timeout=12,
+                headers={"User-Agent": "NightQuest/1.0"},
+            ),
+        )
+        r.raise_for_status()
+        elements = r.json().get("elements", [])
+        max_pop = 0
+        for e in elements:
+            pop_str = e.get("tags", {}).get("population", "")
+            try:
+                # Strip any formatting: "190,000" / "190 000" / "190000"
+                pop = int("".join(c for c in pop_str if c.isdigit()))
+                if pop > max_pop:
+                    max_pop = pop
+            except (ValueError, AttributeError):
+                pass
+        return {"bortle": _population_to_bortle(max_pop)}
+    except Exception:
+        return {"bortle": None}
 
 
 # ---------------------------------------------------------------------------

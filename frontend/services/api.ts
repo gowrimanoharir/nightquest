@@ -150,6 +150,18 @@ export async function fetchChat(req: ChatRequest): Promise<ChatResponse> {
   return post<ChatResponse>('/api/chat', req);
 }
 
+export async function fetchBortle(lat: number, lon: number): Promise<number | null> {
+  try {
+    const res = await get<{ bortle: number | null }>('/api/bortle', {
+      lat: String(lat),
+      lon: String(lon),
+    });
+    return res.bortle;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchPrompts(context?: Partial<ContextObject>): Promise<PromptsResponse> {
   const params: Record<string, string> = {};
   if (context?.tab) params.tab = context.tab;
