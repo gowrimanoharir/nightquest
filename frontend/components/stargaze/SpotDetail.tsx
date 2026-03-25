@@ -33,10 +33,16 @@ import { colors, spacing, borderRadius, typography, breakpoints } from '@/consta
 import { useContextStore, ActiveSpot } from '@/store/context';
 import { fetchConditions, ConditionsResponse } from '@/services/api';
 import ConditionsRow from './ConditionsRow';
+import DatePicker from '@/components/shared/DatePicker';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function formatDateHuman(isoDate: string): string {
+  const d = new Date(isoDate + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 function scoreColor(score: number): string {
   if (score >= 85) return colors.status.good;
@@ -565,11 +571,13 @@ export default function SpotDetail() {
 
   const spot = useContextStore((s) => s.active_spot);
   const date = useContextStore((s) => s.date);
+  const setDate = useContextStore((s) => s.setDate);
   const setVisibilityConditions = useContextStore((s) => s.setVisibilityConditions);
 
   const [conditions, setConditions] = useState<ConditionsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const loadConditions = useCallback(async () => {
     if (!spot) return;
@@ -621,6 +629,8 @@ export default function SpotDetail() {
   }
 
   const distLabel = spot.distance != null ? `${Math.round(spot.distance)} km` : null;
+  const today = new Date().toISOString().slice(0, 10);
+  const activeDate = date ?? today;
 
   // ── Shared content blocks ────────────────────────────────────────────────
 
@@ -637,6 +647,29 @@ export default function SpotDetail() {
         </View>
       )}
       {distLabel && <Text style={styles.distText}>{distLabel}</Text>}
+      <View style={styles.dateTag}>
+        <Text style={styles.dateTagText}>{formatDateHuman(activeDate)}</Text>
+      </View>
+    </View>
+  );
+
+  const DatePillSection = (
+    <View style={styles.datePillWrap}>
+      <Pressable
+        style={styles.datePill}
+        onPress={() => setPickerOpen((v) => !v)}
+        accessibilityLabel="Change date for conditions"
+      >
+        <Text style={styles.datePillText}>
+          Conditions for {formatDateHuman(activeDate)} {pickerOpen ? '▴' : '▾'}
+        </Text>
+      </Pressable>
+      {pickerOpen && (
+        <DatePicker
+          value={activeDate}
+          onChange={(d) => setDate(d)}
+        />
+      )}
     </View>
   );
 
@@ -724,6 +757,7 @@ export default function SpotDetail() {
           <View style={styles.webColumns}>
             {/* Left — conditions */}
             <View style={styles.webLeft}>
+              {DatePillSection}
               <Text style={styles.sectionLabel}>CONDITIONS</Text>
               {ConditionsBlock}
               {MoonBlock && (
@@ -776,8 +810,9 @@ export default function SpotDetail() {
         {/* Score */}
         {ScoreBlock}
 
-        {/* 8 Conditions */}
+        {/* Date pill + 8 Conditions */}
         <View>
+          {DatePillSection}
           <Text style={styles.sectionLabel}>CONDITIONS</Text>
           {ConditionsBlock}
         </View>
@@ -865,6 +900,15 @@ const styles = StyleSheet.create({
   },
   certTagText: { fontSize: 12, fontWeight: '600', color: colors.status.good },
   distText: { ...typography.scale.body.small, color: colors.text.secondary },
+  dateTag: {
+    backgroundColor: colors.background.elevated,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+  },
+  dateTagText: { fontSize: 12, fontWeight: '500', color: colors.text.secondary },
 
   sectionLabel: {
     fontSize: 11,
@@ -937,6 +981,26 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  datePillWrap: {
+    gap: spacing.xl,
+    marginBottom: spacing.xl,
+  },
+  datePill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.elevated,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing['3xl'],
+    paddingVertical: spacing.md,
+  },
+  datePillText: {
+    ...typography.scale.label.medium,
+    color: colors.text.primary,
   },
 
   // Web columns
