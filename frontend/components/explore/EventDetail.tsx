@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,7 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, breakpoints } from '@/constants/theme';
-import { CelestialEvent, EventType } from '@/services/api';
+import { CelestialEvent, ConditionsResponse, EventType, fetchConditions } from '@/services/api';
 import { useContextStore } from '@/store/context';
 import { useChatUIStore } from '@/store/chat';
 
@@ -95,14 +96,57 @@ export default function EventDetail({ event }: EventDetailProps) {
   const setDate = useContextStore((s) => s.setDate);
   const setTab = useContextStore((s) => s.setTab);
   const openChat = useChatUIStore((s) => s.open);
+  const location = useContextStore((s) => s.location);
+  const spots = useContextStore((s) => s.spots);
 
-  // Placeholder visibility factors — will be populated by backend in Phase 3B
-  const visibilityFactors: VisibilityFactor[] = [
-    { label: 'Visible from location', value: 'Unknown', status: 'unknown' },
-    { label: 'Moon interference',     value: 'Unknown', status: 'unknown' },
-    { label: 'Forecast',              value: 'Unknown', status: 'unknown' },
-    { label: 'Bortle rating',         value: 'Unknown', status: 'unknown' },
-  ];
+  const [visLoading, setVisLoading] = useState(false);
+  const [visConditions, setVisConditions] = useState<ConditionsResponse | null>(null);
+
+  useEffect(() => {
+    if (!location) return;
+    setVisLoading(true);
+    const tz = location.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+    fetchConditions(location.lat, location.lon, event.date, tz)
+      .then((res) => setVisConditions(res))
+      .catch(() => { /* keep Unknown on error */ })
+      .finally(() => setVisLoading(false));
+  }, [location?.lat, location?.lon, event.date]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const visibilityFactors: VisibilityFactor[] = useMemo(() => {
+    if (!visConditions) return [
+      { label: 'Visible from location', value: 'Unknown', status: 'unknown' },
+      { label: 'Moon interference',     value: 'Unknown', status: 'unknown' },
+      { label: 'Forecast',              value: 'Unknown', status: 'unknown' },
+      { label: 'Bortle rating',         value: 'Unknown', status: 'unknown' },
+    ];
+
+    // Moon interference
+    const moonPct = visConditions.moon?.illumination ?? 0;
+    const moonStatus: VisibilityFactor['status'] =
+      moonPct < 25 ? 'good' : moonPct < 75 ? 'moderate' : 'poor';
+
+    // Forecast
+    const forecastLabel = visConditions.label;
+    const forecastStatus: VisibilityFactor['status'] =
+      forecastLabel === 'Excellent' || forecastLabel === 'Good' ? 'good' :
+      forecastLabel === 'Fair' ? 'moderate' : 'poor';
+
+    // Bortle — top ranked spot from stargaze context (if any)
+    const topSpot = spots?.[0];
+    const bortleValue = topSpot?.bortle_estimate != null
+      ? `Bortle ${topSpot.bortle_estimate}`
+      : 'Set a dark sky spot to see this';
+    const bortleStatus: VisibilityFactor['status'] = topSpot?.bortle_estimate != null
+      ? topSpot.bortle_estimate <= 3 ? 'good' : topSpot.bortle_estimate <= 5 ? 'moderate' : 'poor'
+      : 'unknown';
+
+    return [
+      { label: 'Visible from location', value: 'Yes',          status: 'good' },
+      { label: 'Moon interference',     value: `${moonPct}% illuminated`, status: moonStatus },
+      { label: 'Forecast',              value: forecastLabel,  status: forecastStatus },
+      { label: 'Bortle rating',         value: bortleValue,    status: bortleStatus },
+    ];
+  }, [visConditions, spots]);
 
   const handleFindDarkSkies = () => {
     setActiveEvent({ name: event.name, date: event.date, type: event.type });
@@ -135,9 +179,15 @@ export default function EventDetail({ event }: EventDetailProps) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Visibility from your location</Text>
         <View style={styles.visibilityCard}>
-          {visibilityFactors.map((f) => (
-            <VisibilityRow key={f.label} factor={f} />
-          ))}
+          {visLoading ? (
+            <View style={styles.visLoadingWrap}>
+              <ActivityIndicator color={colors.accent.primary} size="small" />
+            </View>
+          ) : (
+            visibilityFactors.map((f) => (
+              <VisibilityRow key={f.label} factor={f} />
+            ))
+          )}
         </View>
       </View>
     </>
@@ -282,6 +332,10 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius['2xl'],
     paddingHorizontal: spacing['3xl'],
     overflow: 'hidden',
+  },
+  visLoadingWrap: {
+    alignItems: 'center',
+    paddingVertical: spacing['4xl'],
   },
 
   // CTA

@@ -93,7 +93,11 @@ export default function ExploreScreen() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetchEvents(location, year)
+    const locationWithTz = {
+      ...location,
+      timezone: location.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+    fetchEvents(locationWithTz, year)
       .then((res) => { if (!cancelled) setEvents(res.events); })
       .catch((err) => { if (!cancelled) setError(err.message ?? 'Failed to load events'); })
       .finally(() => { if (!cancelled) setLoading(false); });
