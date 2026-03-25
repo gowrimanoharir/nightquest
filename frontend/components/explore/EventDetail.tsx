@@ -102,6 +102,14 @@ export default function EventDetail({ event }: EventDetailProps) {
   const [visLoading, setVisLoading] = useState(false);
   const [visConditions, setVisConditions] = useState<ConditionsResponse | null>(null);
 
+  const isHistorical = (() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const eventDate = new Date(event.date + 'T00:00:00');
+    return Math.round((eventDate.getTime() - today.getTime()) / 86400000) > 16;
+  })();
+  const eventMonth = new Date(event.date + 'T00:00:00').toLocaleString('en-US', { month: 'long' });
+
   useEffect(() => {
     if (!location) return;
     setVisLoading(true);
@@ -125,11 +133,15 @@ export default function EventDetail({ event }: EventDetailProps) {
     const moonStatus: VisibilityFactor['status'] =
       moonPct < 25 ? 'good' : moonPct < 75 ? 'moderate' : 'poor';
 
-    // Forecast
+    // Forecast — amber dot + "Typically X" label when showing historical averages
     const forecastLabel = visConditions.label;
-    const forecastStatus: VisibilityFactor['status'] =
-      forecastLabel === 'Excellent' || forecastLabel === 'Good' ? 'good' :
-      forecastLabel === 'Fair' ? 'moderate' : 'poor';
+    const forecastValue = isHistorical
+      ? `Typically ${forecastLabel} (historical avg)`
+      : forecastLabel;
+    const forecastStatus: VisibilityFactor['status'] = isHistorical
+      ? 'moderate'
+      : forecastLabel === 'Excellent' || forecastLabel === 'Good' ? 'good' :
+        forecastLabel === 'Fair' ? 'moderate' : 'poor';
 
     // Bortle — top ranked spot from stargaze context (if any)
     const topSpot = spots?.[0];
@@ -143,10 +155,10 @@ export default function EventDetail({ event }: EventDetailProps) {
     return [
       { label: 'Visible from location', value: 'Yes',          status: 'good' },
       { label: 'Moon interference',     value: `${moonPct}% illuminated`, status: moonStatus },
-      { label: 'Forecast',              value: forecastLabel,  status: forecastStatus },
+      { label: 'Forecast',              value: forecastValue,  status: forecastStatus },
       { label: 'Bortle rating',         value: bortleValue,    status: bortleStatus },
     ];
-  }, [visConditions, spots]);
+  }, [visConditions, spots, isHistorical]);
 
   const handleFindDarkSkies = () => {
     setActiveEvent({ name: event.name, date: event.date, type: event.type });
@@ -178,6 +190,14 @@ export default function EventDetail({ event }: EventDetailProps) {
       {/* Visibility section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Visibility from your location</Text>
+        {isHistorical && (
+          <View style={styles.historicalBanner}>
+            <Text style={styles.historicalIcon}>📅</Text>
+            <Text style={styles.historicalText}>
+              Based on historical averages for {eventMonth} — live forecast unavailable this far ahead
+            </Text>
+          </View>
+        )}
         <View style={styles.visibilityCard}>
           {visLoading ? (
             <View style={styles.visLoadingWrap}>
@@ -336,6 +356,23 @@ const styles = StyleSheet.create({
   visLoadingWrap: {
     alignItems: 'center',
     paddingVertical: spacing['4xl'],
+  },
+  historicalBanner: {
+    flexDirection: 'row',
+    gap: spacing.xl,
+    backgroundColor: 'rgba(253,230,138,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(253,230,138,0.2)',
+    borderRadius: borderRadius.xl,
+    padding: spacing['3xl'],
+    alignItems: 'flex-start',
+  },
+  historicalIcon: { fontSize: 16, lineHeight: 20 },
+  historicalText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.celestial.glow,
+    lineHeight: 18,
   },
 
   // CTA
