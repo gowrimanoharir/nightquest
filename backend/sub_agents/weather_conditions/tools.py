@@ -194,8 +194,14 @@ def _temp_factor(temp_c: float) -> dict:
 # Moon calculations via astronomy-engine
 # ---------------------------------------------------------------------------
 
-def _moon_info(obs_date: date, timezone: str) -> dict:
-    """Return phase name, illumination %, rise/set times, best viewing window."""
+def _moon_info(obs_date: date, timezone: str, lat: float = 0.0, lon: float = 0.0) -> dict:
+    """Return phase name, illumination %, rise/set times, best viewing window.
+
+    Searches a 36-hour window starting from local noon of obs_date so that
+    moonsets which cross into the next calendar day are never missed.
+    Times are shown in local timezone; set_time is suffixed ' +1' when the
+    moon sets after local midnight (i.e. early morning of obs_date + 1 day).
+    """
     try:
         import astronomy  # astronomy-engine
     except ImportError:
@@ -212,10 +218,8 @@ def _moon_info(obs_date: date, timezone: str) -> dict:
     except (ZoneInfoNotFoundError, Exception):
         tz = ZoneInfo("UTC")
 
-    dt = datetime(obs_date.year, obs_date.month, obs_date.day, 0, 0, 0)
-    time_obj = astronomy.Time.Make(dt.year, dt.month, dt.day, 0, 0, 0.0)
-
-    # Moon phase angle (0–360 degrees)
+    # Phase / illumination calculated at local midnight of obs_date
+    time_obj = astronomy.Time.Make(obs_date.year, obs_date.month, obs_date.day, 0, 0, 0.0)
     phase_angle = astronomy.MoonPhase(time_obj)
     illum = astronomy.Illumination(astronomy.Body.Moon, time_obj)
     illumination_pct = round(illum.phase_fraction * 100)
@@ -238,32 +242,57 @@ def _moon_info(obs_date: date, timezone: str) -> dict:
     else:
         phase_name = "Waning Crescent"
 
-    # Rise/set times (local)
+    # Search start = local noon of obs_date, converted to UTC.
+    # A 36-hour (1.5-day) window from noon covers the full observing night
+    # plus early hours of the next morning, so no moonset is ever missed.
+    try:
+        local_noon = datetime(obs_date.year, obs_date.month, obs_date.day, 12, 0, 0, tzinfo=tz)
+        noon_utc = local_noon.astimezone(ZoneInfo("UTC"))
+        search_start = astronomy.Time.Make(
+            noon_utc.year, noon_utc.month, noon_utc.day,
+            noon_utc.hour, noon_utc.minute, float(noon_utc.second),
+        )
+    except Exception:
+        search_start = time_obj  # fallback to midnight UTC
+
+    obs = astronomy.Observer(lat, lon, 0.0)
+
+    # Rise time
     try:
         rise_event = astronomy.SearchRiseSet(
-            astronomy.Body.Moon, astronomy.Observer(0, 0, 0), astronomy.Direction.Rise,
-            time_obj, 1.0
+            astronomy.Body.Moon, obs, astronomy.Direction.Rise, search_start, 1.5
         )
-        rise_dt = rise_event.Utc().replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
-        rise_str = rise_dt.strftime("%H:%M")
+        if rise_event is not None:
+            rise_dt = rise_event.Utc().replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
+            rise_str = rise_dt.strftime("%H:%M")
+        else:
+            rise_str = "N/A"
     except Exception:
         rise_str = "N/A"
 
+    # Set time — tag with ' +1' when moonset falls after local midnight
+    set_str = "N/A"
     try:
         set_event = astronomy.SearchRiseSet(
-            astronomy.Body.Moon, astronomy.Observer(0, 0, 0), astronomy.Direction.Set,
-            time_obj, 1.0
+            astronomy.Body.Moon, obs, astronomy.Direction.Set, search_start, 1.5
         )
-        set_dt = set_event.Utc().replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
-        set_str = set_dt.strftime("%H:%M")
+        if set_event is not None:
+            set_dt = set_event.Utc().replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
+            set_str = set_dt.strftime("%H:%M")
+            if set_dt.date() > obs_date:
+                set_str += " +1"
     except Exception:
         set_str = "N/A"
 
-    # Best viewing window — after moon sets (or all night if new moon)
+    # Best viewing window
     if illumination_pct < 15:
         best_window = "All night — near new moon, ideal darkness"
     elif set_str != "N/A":
-        best_window = f"After {set_str} when moon has set"
+        if "+1" in set_str:
+            time_only = set_str.replace(" +1", "")
+            best_window = f"After {time_only} (next morning) when moon has set"
+        else:
+            best_window = f"After {set_str} when moon has set"
     else:
         best_window = "Avoid peak moonrise hours"
 
@@ -502,7 +531,7 @@ def weather_tool(lat: float, lon: float, obs_date_str: str, timezone: str,
     pm25 = _fetch_pm25(lat, lon, obs_date, timezone) if is_forecast else 10.0
 
     # --- Moon info ---
-    moon = _moon_info(obs_date, timezone)
+    moon = _moon_info(obs_date, timezone, lat, lon)
 
     # --- Compute 8 factors ---
     factors = [
