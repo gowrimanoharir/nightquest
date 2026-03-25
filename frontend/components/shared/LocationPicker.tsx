@@ -87,9 +87,13 @@ export function useAutoDetectLocation() {
       }
     } catch { /* permission denied or unavailable — fall through */ }
 
-    // 2. IP geolocation
+    // 2. IP geolocation (with one retry after 2s if first attempt fails)
     const ipLoc = await detectViaIP();
     if (ipLoc) { setLocation(ipLoc); return; }
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const ipLocRetry = await detectViaIP();
+    if (ipLocRetry) { setLocation(ipLocRetry); return; }
 
     // 3. Timezone mapping
     const tzLoc = detectViaTimezone();

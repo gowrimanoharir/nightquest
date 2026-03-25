@@ -127,8 +127,11 @@ export default function RootLayout() {
   const [showSplash, setShowSplash] = useState(false);
 
   useEffect(() => {
-    // Hydrate persisted context before auto-detecting location
-    hydrate().then(() => autoDetect());
+    // Hydrate persisted context, then auto-detect only if no location was restored
+    hydrate().then(() => {
+      const { location } = useContextStore.getState();
+      if (!location) autoDetect();
+    });
 
     // Check if splash has been shown before
     AsyncStorage.getItem(SPLASH_KEY).then((val) => {
