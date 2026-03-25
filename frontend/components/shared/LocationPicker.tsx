@@ -122,17 +122,26 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
         { headers: { 'Accept-Language': 'en', 'User-Agent': 'NightQuest/1.0' } }
       );
       const data = await res.json();
-      const items: Location[] = (data ?? []).map((r: any) => {
-        const city = r.address?.city || r.address?.town || r.address?.village || r.address?.hamlet || r.name;
-        const country = r.address?.country;
-        const name = country ? `${city}, ${country}` : city;
-        return {
-          lat: parseFloat(r.lat),
-          lon: parseFloat(r.lon),
-          name,
-          source: 'manual' as const,
-        };
-      });
+      const KEEP_TYPES = new Set(['city', 'town', 'village', 'hamlet', 'suburb', 'quarter']);
+      const EXCLUDE_TYPES = new Set(['state', 'region', 'county', 'administrative', 'province', 'municipality', 'district']);
+      const items: Location[] = (data ?? [])
+        .filter((r: any) =>
+          (KEEP_TYPES.has(r.type) || r.class === 'place') &&
+          !EXCLUDE_TYPES.has(r.type) &&
+          r.class !== 'boundary' &&
+          r.class !== 'landuse'
+        )
+        .map((r: any) => {
+          const city = r.address?.city || r.address?.town || r.address?.village || r.address?.hamlet || r.name;
+          const country = r.address?.country;
+          const name = country ? `${city}, ${country}` : city;
+          return {
+            lat: parseFloat(r.lat),
+            lon: parseFloat(r.lon),
+            name,
+            source: 'manual' as const,
+          };
+        });
       setResults(items);
     } catch {
       setResults([]);
