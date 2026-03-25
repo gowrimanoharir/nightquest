@@ -112,18 +112,20 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
 
   const displayName = location?.name ?? (location ? `${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}` : 'Set location');
 
+  // Fix 6.2: Nominatim fuzzy geocoding — handles partial names like "Atacama"
   const searchCities = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); return; }
     setSearching(true);
     try {
       const res = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=en&format=json`
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`,
+        { headers: { 'Accept-Language': 'en', 'User-Agent': 'NightQuest/1.0' } }
       );
       const data = await res.json();
-      const items: Location[] = (data.results ?? []).map((r: any) => ({
-        lat: r.latitude,
-        lon: r.longitude,
-        name: [r.name, r.admin1, r.country_code].filter(Boolean).join(', '),
+      const items: Location[] = (data ?? []).map((r: any) => ({
+        lat: parseFloat(r.lat),
+        lon: parseFloat(r.lon),
+        name: r.display_name,
         source: 'manual' as const,
       }));
       setResults(items);
@@ -136,9 +138,30 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
 
   useEffect(() => {
     if (debounce.current) clearTimeout(debounce.current);
-    debounce.current = setTimeout(() => searchCities(query), 400);
+    debounce.current = setTimeout(() => searchCities(query), 500); // 500ms debounce
     return () => { if (debounce.current) clearTimeout(debounce.current); };
   }, [query, searchCities]);
+
+  // Fix 6.5: auto-detect current location (used from planning mode banner)
+  const handleAutoDetect = useCallback(async () => {
+    setSheetOpen(false);
+    try {
+      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const pos = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
+        const [geocode] = await ExpoLocation.reverseGeocodeAsync({
+          latitude: pos.coords.latitude, longitude: pos.coords.longitude,
+        }).catch(() => [null]);
+        const name = geocode ? [geocode.city, geocode.region].filter(Boolean).join(', ') : undefined;
+        setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude, name, source: 'gps' });
+        return;
+      }
+    } catch { /* permission denied — fall through */ }
+    const ipLoc = await detectViaIP();
+    if (ipLoc) { setLocation(ipLoc); return; }
+    const tzLoc = detectViaTimezone();
+    if (tzLoc) setLocation(tzLoc);
+  }, [setLocation]);
 
   const selectLocation = (loc: Location) => {
     setLocation(loc);
@@ -147,11 +170,16 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
     setResults([]);
   };
 
+  const isManual = location?.source === 'manual';
+
   return (
     <>
-      <Pressable style={styles.chip} onPress={() => setSheetOpen(true)}>
-        <Text style={styles.pinIcon}>📍</Text>
-        <Text style={styles.chipText} numberOfLines={1}>{displayName}</Text>
+      <Pressable style={[styles.chip, isManual && styles.chipManual]} onPress={() => setSheetOpen(true)}>
+        <Text style={styles.pinIcon}>{isManual ? '📌' : '📍'}</Text>
+        <View style={styles.chipTextWrap}>
+          {isManual && <Text style={styles.viewingFromLabel}>VIEWING FROM</Text>}
+          <Text style={styles.chipText} numberOfLines={1}>{displayName}</Text>
+        </View>
         <Text style={styles.chevron}>›</Text>
       </Pressable>
 
@@ -165,6 +193,16 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
         <View style={styles.sheet}>
           <View style={styles.handle} />
           <Text style={styles.sheetTitle}>Choose Location</Text>
+          {isManual && (
+            <View style={styles.planningBanner}>
+              <Text style={styles.planningText}>
+                You are planning from this location. Tap below to use your current location instead.
+              </Text>
+              <Pressable style={styles.planningBtn} onPress={handleAutoDetect}>
+                <Text style={styles.planningBtnText}>📍  Use my current location</Text>
+              </Pressable>
+            </View>
+          )}
 
           <View style={styles.inputWrap}>
             <TextInput
@@ -208,18 +246,58 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
     maxWidth: 200,
   },
+  chipManual: {
+    borderColor: 'rgba(253,186,116,0.5)',
+    backgroundColor: 'rgba(253,186,116,0.06)',
+  },
   pinIcon: {
     fontSize: 12,
+  },
+  chipTextWrap: {
+    flex: 1,
+  },
+  viewingFromLabel: {
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: 'rgb(251,146,60)',
+    textTransform: 'uppercase',
+    lineHeight: 10,
   },
   chipText: {
     ...typography.scale.label.medium,
     color: colors.text.primary,
-    flex: 1,
   },
   chevron: {
     fontSize: 14,
     color: colors.text.secondary,
     marginLeft: spacing.xs,
+  },
+  planningBanner: {
+    backgroundColor: 'rgba(253,186,116,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(253,186,116,0.3)',
+    borderRadius: borderRadius.xl,
+    padding: spacing['3xl'],
+    gap: spacing.xl,
+    marginBottom: spacing['3xl'],
+  },
+  planningText: {
+    fontSize: 13,
+    color: 'rgb(251,146,60)',
+    lineHeight: 18,
+  },
+  planningBtn: {
+    backgroundColor: colors.background.elevated,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.xl,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  planningBtnText: {
+    ...typography.scale.label.medium,
+    color: colors.text.primary,
   },
   backdrop: {
     flex: 1,

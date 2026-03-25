@@ -81,6 +81,17 @@ _CHAT_INSTRUCTIONS = [
     "[ACTION:view_spot:SpotName] "
     "Use exactly this format with colon separators and square brackets — no extra spaces.",
 
+    # 9. Travel planning mode — only when source is manual AND date > 30 days out
+    "When context.location.source is 'manual' AND the selected date is more than 30 days "
+    "from today, the user is in travel planning mode. Shift tone and focus accordingly: "
+    "Lead with: is this trip worth it for stargazing? "
+    "Suggest optimal date windows if the user has flexibility — e.g. historically [month] "
+    "has better or worse conditions than [other month] at this location. "
+    "Reference that conditions shown are based on historical averages, not a live forecast. "
+    "If discussing spots, frame it as: best spots to visit rather than nearest spots to your location. "
+    "NEVER shift to travel planning mode when location.source is gps, ip, or timezone — "
+    "only when source is explicitly 'manual'.",
+
     # Context update — VERY restrictive
     "Only append a <context_update> block if the user's message EXPLICITLY states a NEW "
     "location (e.g. 'I'm in Tokyo'), a NEW specific date, a NEW event they selected, or a "

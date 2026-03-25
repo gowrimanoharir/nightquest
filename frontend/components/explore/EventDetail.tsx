@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -186,6 +187,18 @@ export default function EventDetail({ event }: EventDetailProps) {
         <Text style={styles.sectionTitle}>About</Text>
         <Text style={styles.description}>{description}</Text>
       </View>
+
+      {/* Eclipse note + NASA link — eclipse events only */}
+      {event.type === 'eclipse' && (
+        <View style={styles.eclipseNote}>
+          <Text style={styles.eclipseNoteText}>
+            Eclipse visibility varies by location. Your position determines whether you see a total, partial, or no eclipse.
+          </Text>
+          <Pressable onPress={() => Linking.openURL('https://eclipse.gsfc.nasa.gov')} style={styles.eclipseLink}>
+            <Text style={styles.eclipseLinkText}>View eclipse path and totality map →</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Visibility section */}
       <View style={styles.section}>
@@ -401,6 +414,29 @@ const styles = StyleSheet.create({
   ctaSecondaryText: {
     ...typography.scale.label.large,
     color: colors.celestial.ai,
+  },
+
+  // Eclipse note
+  eclipseNote: {
+    backgroundColor: 'rgba(99,102,241,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(99,102,241,0.2)',
+    borderRadius: borderRadius['2xl'],
+    padding: spacing['3xl'],
+    gap: spacing.xl,
+  },
+  eclipseNoteText: {
+    fontSize: 13,
+    color: colors.text.secondary,
+    lineHeight: 18,
+  },
+  eclipseLink: {
+    alignSelf: 'flex-start',
+  },
+  eclipseLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.accent.secondary,
   },
 
   // Web layout
