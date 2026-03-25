@@ -37,14 +37,14 @@ const TIMEZONE_FALLBACK: Record<string, { name: string; lat: number; lon: number
 
 async function detectViaIP(): Promise<Location | null> {
   try {
-    const res = await fetch('https://ipapi.co/json/');
+    const res = await fetch('https://ipwho.is/');
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.latitude || !data.longitude) return null;
     return {
       lat: data.latitude,
       lon: data.longitude,
-      name: data.city ? `${data.city}, ${data.region_code ?? data.country_code}` : undefined,
+      name: data.city ? `${data.city}, ${data.region}` : undefined,
       source: 'ip',
     };
   } catch {
@@ -87,13 +87,9 @@ export function useAutoDetectLocation() {
       }
     } catch { /* permission denied or unavailable — fall through */ }
 
-    // 2. IP geolocation (with one retry after 2s if first attempt fails)
+    // 2. IP geolocation
     const ipLoc = await detectViaIP();
     if (ipLoc) { setLocation(ipLoc); return; }
-
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    const ipLocRetry = await detectViaIP();
-    if (ipLocRetry) { setLocation(ipLocRetry); return; }
 
     // 3. Timezone mapping
     const tzLoc = detectViaTimezone();
