@@ -122,15 +122,15 @@ export default function LocationPicker({ compact = true }: LocationPickerProps) 
         { headers: { 'Accept-Language': 'en', 'User-Agent': 'NightQuest/1.0' } }
       );
       const data = await res.json();
-      const KEEP_TYPES = new Set(['city', 'town', 'village', 'hamlet', 'suburb', 'quarter']);
-      const EXCLUDE_TYPES = new Set(['state', 'region', 'county', 'administrative', 'province', 'municipality', 'district']);
+      const PLACE_PRIORITY = ['city', 'town', 'village', 'hamlet', 'suburb', 'quarter'];
       const items: Location[] = (data ?? [])
-        .filter((r: any) =>
-          (KEEP_TYPES.has(r.type) || r.class === 'place') &&
-          !EXCLUDE_TYPES.has(r.type) &&
-          r.class !== 'boundary' &&
-          r.class !== 'landuse'
-        )
+        .sort((a: any, b: any) => {
+          const ai = PLACE_PRIORITY.indexOf(a.type);
+          const bi = PLACE_PRIORITY.indexOf(b.type);
+          const ar = ai === -1 ? PLACE_PRIORITY.length : ai;
+          const br = bi === -1 ? PLACE_PRIORITY.length : bi;
+          return ar - br;
+        })
         .map((r: any) => {
           const city = r.address?.city || r.address?.town || r.address?.village || r.address?.hamlet || r.name;
           const country = r.address?.country;
