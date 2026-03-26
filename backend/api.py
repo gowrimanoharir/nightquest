@@ -193,11 +193,14 @@ async def get_geoip(request: Request, ip: Optional[str] = Query(default=None)):
 # ---------------------------------------------------------------------------
 
 def _derive_timezone(lat: float, lon: float) -> str:
-    """Best-effort IANA timezone from lat/lon via timezonefinder (if installed)."""
+    """Best-effort IANA timezone from lat/lon via timezonefinder (if installed).
+    Falls back to closest_timezone_at for coordinates over water/remote areas
+    where timezone_at returns None (common for dark sky sites near lakes).
+    """
     try:
         from timezonefinder import TimezoneFinder  # type: ignore
         tf = TimezoneFinder()
-        tz = tf.timezone_at(lat=lat, lng=lon)
+        tz = tf.timezone_at(lat=lat, lng=lon) or tf.closest_timezone_at(lat=lat, lng=lon)
         return tz or "UTC"
     except Exception:
         return "UTC"
