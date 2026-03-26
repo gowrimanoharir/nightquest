@@ -53,9 +53,9 @@ function scoreColor(score: number): string {
 
 function openDirections(lat: number, lon: number) {
   const url = Platform.select({
-    ios: `maps://app?daddr=${lat},${lon}`,
+    ios: `maps://?daddr=${lat},${lon}`,
     android: `google.navigation:q=${lat},${lon}`,
-    default: `https://maps.google.com/?q=${lat},${lon}`,
+    default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`,
   });
   if (url) Linking.openURL(url);
 }
