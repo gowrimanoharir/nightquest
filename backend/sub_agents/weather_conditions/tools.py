@@ -285,7 +285,7 @@ def _moon_info(obs_date: date, timezone: str, lat: float = 0.0, lon: float = 0.0
     except Exception:
         pass
 
-    # Sunset — used to determine whether moonset occurs during day or night
+    # Sunset (same evening — searched from local noon, window 1 day)
     sunset_dt = None
     try:
         sunset_event = astronomy.SearchRiseSet(
@@ -295,30 +295,84 @@ def _moon_info(obs_date: date, timezone: str, lat: float = 0.0, lon: float = 0.0
             sunset_dt = sunset_event.Utc().replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
     except Exception:
         pass
-    # Fallback: treat 20:00 local as start of night if sunset unavailable
-    night_start = sunset_dt or datetime(obs_date.year, obs_date.month, obs_date.day, 20, 0, tzinfo=tz)
 
-    # Best viewing window — longest dark period during astronomical night
+    # Sunrise (next morning — searched from local noon, window 1.5 days)
+    sunrise_dt = None
+    try:
+        sunrise_event = astronomy.SearchRiseSet(
+            astronomy.Body.Sun, obs, astronomy.Direction.Rise, search_start, 1.5
+        )
+        if sunrise_event is not None:
+            sunrise_dt = sunrise_event.Utc().replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
+            # If this sunrise comes before sunset it's the current morning — skip to the next one
+            if sunset_dt and sunrise_dt <= sunset_dt:
+                t2 = astronomy.Time.Make(
+                    sunrise_dt.year, sunrise_dt.month, sunrise_dt.day,
+                    sunrise_dt.hour + 2, 0, 0.0
+                )
+                ev2 = astronomy.SearchRiseSet(astronomy.Body.Sun, obs, astronomy.Direction.Rise, t2, 1.0)
+                if ev2 is not None:
+                    sunrise_dt = ev2.Utc().replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
+    except Exception:
+        pass
+
+    # Fallbacks if solar events unavailable
+    if sunset_dt is None:
+        sunset_dt = datetime(obs_date.year, obs_date.month, obs_date.day, 20, 0, tzinfo=tz)
+    if sunrise_dt is None:
+        next_day = obs_date + timedelta(days=1)
+        sunrise_dt = datetime(next_day.year, next_day.month, next_day.day, 6, 0, tzinfo=tz)
+
+    def _fmt_duration(start: datetime, end: datetime) -> str:
+        mins = max(0, int((end - start).total_seconds() / 60))
+        h, m = divmod(mins, 60)
+        if h == 0:
+            return f"{m} min"
+        if m < 10:
+            return f"about {h} hour{'s' if h != 1 else ''}"
+        return f"about {h}h {m}min"
+
+    # Window A: sunset → moonrise  (only if moonrise falls within the night)
+    window_a: tuple[datetime, datetime] | None = None
+    if rise_dt is not None and sunset_dt < rise_dt < sunrise_dt:
+        window_a = (sunset_dt, rise_dt)
+
+    # Window B: moonset → sunrise  (only if moonset falls within the night)
+    window_b: tuple[datetime, datetime] | None = None
+    if set_dt is not None and sunset_dt < set_dt < sunrise_dt:
+        window_b = (set_dt, sunrise_dt)
+
+    # Best viewing window — longest of the two valid windows
     if illumination_pct < 15:
         best_window = "All night — near new moon, ideal darkness"
-    elif set_dt is not None and set_dt <= night_start:
-        # Moon already set before evening — dark from sunset until moonrise
-        if rise_dt is not None and rise_dt > night_start:
-            best_window = f"From sunset until {rise_str} when moon rises"
+    elif window_a and window_b:
+        dur_a = (window_a[1] - window_a[0]).total_seconds()
+        dur_b = (window_b[1] - window_b[0]).total_seconds()
+        if dur_a >= dur_b:
+            best_window = (
+                f"Best viewing from sunset until {rise_str} when moon rises"
+                f" — {_fmt_duration(*window_a)} of dark sky"
+            )
         else:
-            best_window = "All evening — moon already set at sunset"
-    elif rise_dt is not None and rise_dt.date() > obs_date:
-        # Moon rises after midnight — long uninterrupted dark window
-        best_window = f"From sunset until {rise_str} — long dark window"
-    elif set_dt is not None:
-        # Moon up in the evening, sets during the night or after midnight
-        time_only = set_str.replace(" +1", "")
-        if "+1" in set_str:
-            best_window = f"After {time_only} (next morning) when moon sets"
-        else:
-            best_window = f"After {set_str} when moon sets"
+            best_window = (
+                f"Best viewing after {set_str.replace(' +1', '')} when moon sets until sunrise"
+                f" — {_fmt_duration(*window_b)} of dark sky"
+            )
+    elif window_a:
+        best_window = (
+            f"Best viewing from sunset until {rise_str} when moon rises"
+            f" — {_fmt_duration(*window_a)} of dark sky"
+        )
+    elif window_b:
+        best_window = (
+            f"Best viewing after {set_str.replace(' +1', '')} when moon sets until sunrise"
+            f" — {_fmt_duration(*window_b)} of dark sky"
+        )
+    elif set_dt is not None and set_dt <= sunset_dt:
+        # Moon already set before evening
+        best_window = "All evening — moon already set at sunset, ideal darkness"
     else:
-        best_window = "Moon up all night — best viewing near moonset or before moonrise"
+        best_window = "Moon up all night — significant light interference"
 
     return {
         "phase": phase_name,
