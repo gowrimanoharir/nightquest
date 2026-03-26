@@ -287,76 +287,61 @@ def get_milky_way_windows_for_year(
     if not above:
         return []
 
-    peak_iso, peak_alt = max(above, key=lambda x: x[1])
-    peak_month = int(peak_iso[5:7])
-
-    # Build a month → best (iso, alt) lookup for quick milestone selection
+    # Best day per calendar month
     month_best: dict[int, tuple[str, float]] = {}
     for iso, alt in above:
         m = int(iso[5:7])
         if m not in month_best or alt > month_best[m][1]:
             month_best[m] = (iso, alt)
 
-    used: set[str] = set()
-    milestones: list[tuple[str, str]] = []
+    if not month_best:
+        return []
 
-    def _add(iso: str, desc: str) -> None:
-        if iso not in used:
-            milestones.append((iso, desc))
-            used.add(iso)
+    peak_alt = max(alt for _, alt in month_best.values())
+    peak_month = next(m for m, (_, alt) in month_best.items() if alt == peak_alt)
+    first_month = min(month_best)
+    last_month = max(month_best)
 
-    # 1. Season opens — first day above threshold
-    _add(
-        above[0][0],
-        f"Galactic center first clears {int(min_alt)}\u00b0 altitude during the night. "
-        "Milky Way season opens for your latitude.",
-    )
+    def _classify(alt: float) -> str:
+        if alt >= 40.0: return "Excellent viewing"
+        if alt >= 25.0: return "Very good viewing"
+        if alt >= 15.0: return "Good viewing"
+        return "Fair viewing"
 
-    # 2. Rising — best day two calendar months before peak
-    rising_month = ((peak_month - 3) % 12) + 1
-    if rising_month in month_best:
-        _add(
-            month_best[rising_month][0],
-            "Core climbing higher each night. Good pre-midnight viewing begins from dark sites.",
-        )
+    events: list[dict] = []
+    for month in sorted(month_best):
+        iso, alt = month_best[month]
+        classification = _classify(alt)
 
-    # 3. Peak — day of maximum altitude
-    if peak_alt < 20.0:
-        peak_desc = (
-            f"Galactic core reaches ~{int(peak_alt)}\u00b0 altitude during the night "
-            "— best viewed in early evening from dark sites with a clear southern horizon."
-        )
-    else:
-        peak_desc = (
-            f"Peak season. Galactic core reaches {int(peak_alt)}\u00b0 altitude during the night "
-            "— best dark-sky opportunity of the year from your latitude."
-        )
-    _add(peak_iso, peak_desc)
+        if month == first_month:
+            desc = (
+                f"Milky Way season opens. Core reaches {int(alt)}\u00b0 at its best tonight "
+                f"— {classification} from dark sites."
+            )
+        elif month == peak_month:
+            desc = (
+                f"Peak season. Galactic core reaches {int(alt)}\u00b0 "
+                "— best dark-sky opportunity of the year from your latitude."
+            )
+        elif month == last_month:
+            desc = (
+                f"Season closing. Core at {int(alt)}\u00b0 at best "
+                "— catch it before it sets for the year."
+            )
+        else:
+            desc = (
+                f"Core reaches {int(alt)}\u00b0 tonight "
+                f"— {classification} from dark sites with a clear southern horizon."
+            )
 
-    # 4. Late — best day two calendar months after peak
-    late_month = ((peak_month + 1) % 12) + 1
-    if late_month in month_best:
-        _add(
-            month_best[late_month][0],
-            "Core still visible during the night. Last wide viewing window before the season ends.",
-        )
-
-    # 5. Closing — last day above threshold
-    _add(
-        above[-1][0],
-        f"Galactic center drops below {int(min_alt)}\u00b0 during the night. "
-        "Season closing for your latitude.",
-    )
-
-    return [
-        {
+        events.append({
             "name": "Milky Way Season",
             "date": iso,
             "type": "milky_way",
             "description": desc,
-        }
-        for iso, desc in milestones
-    ]
+        })
+
+    return events
 
 
 # ---------------------------------------------------------------------------
