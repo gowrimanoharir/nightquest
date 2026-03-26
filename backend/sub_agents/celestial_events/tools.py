@@ -213,33 +213,43 @@ def get_meteor_showers_for_year(year: int) -> list[dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
-# Milky Way windows — galactic center altitude at local midnight
+# Milky Way windows — galactic center max altitude during the night
 # ---------------------------------------------------------------------------
 
-def _gc_alt_at_local_midnight(
+def _gc_max_alt_during_night(
     obs: Observer, year: int, month: int, day: int, lon: float
 ) -> float:
     """
-    Altitude of the galactic center (Sgr A*) at local midnight on the given date,
-    in degrees. Local midnight is approximated from the observer's longitude.
+    Maximum altitude of the galactic center (Sgr A*) across the observing night
+    (8 PM to 4 AM local time), sampled every 30 minutes.
+
+    Using the nightly maximum instead of the midnight snapshot ensures that
+    August–October are included for northern latitudes (e.g. 43°N), where the
+    core transits in early evening but has already descended below threshold by
+    midnight — causing a false early season end when midnight-only is used.
     """
-    # UTC hour that corresponds to 00:00 local civil time:
-    #   UTC = local − UTC_offset  →  UTC_offset ≈ lon/15h
-    #   so 00:00 local = (−lon/15) UTC hours
-    utc_h = (-lon / 15.0) % 24.0
-    h_int = int(utc_h)
-    m_int = int((utc_h - h_int) * 60)
+    utc_offset = lon / 15.0
+    max_alt = -90.0
+    for local_hour_offset in range(17):  # 17 steps × 0.5h = 8 PM to 4 AM
+        local_hour = 20.0 + (local_hour_offset * 0.5)
+        if local_hour >= 28.0:  # past 4 AM next day
+            break
+        actual_hour = local_hour % 24
+        utc_hour = (actual_hour - utc_offset) % 24
 
-    # For eastern longitudes (utc_h ≥ 12) local midnight of `date`
-    # falls on the previous UTC calendar day.
-    if utc_h >= 12.0:
-        prev = _date(year, month, day) - timedelta(days=1)
-        t = Time.Make(prev.year, prev.month, prev.day, h_int, m_int, 0)
-    else:
-        t = Time.Make(year, month, day, h_int, m_int, 0)
+        day_offset = 1 if local_hour >= 24.0 else 0
+        d = _date(year, month, day) + timedelta(days=day_offset)
 
-    hor = astronomy.Horizon(t, obs, _GC_RA, _GC_DEC, Refraction.Normal)
-    return hor.altitude
+        h_int = int(utc_hour)
+        m_int = int((utc_hour - h_int) * 60)
+        try:
+            t = Time.Make(d.year, d.month, d.day, h_int, m_int, 0)
+            hor = astronomy.Horizon(t, obs, _GC_RA, _GC_DEC, Refraction.Normal)
+            if hor.altitude > max_alt:
+                max_alt = hor.altitude
+        except Exception:
+            continue
+    return max_alt
 
 
 def get_milky_way_windows_for_year(
@@ -250,26 +260,25 @@ def get_milky_way_windows_for_year(
 ) -> list[dict[str, Any]]:
     """
     Return Milky Way season events based on when the galactic center (Sgr A*)
-    actually clears min_alt degrees above the horizon at local midnight, calculated
-    for the observer's exact latitude and longitude via astronomy.Horizon.
+    reaches min_alt degrees above the horizon at any point during the night
+    (8 PM – 4 AM local time), calculated for the observer's exact coordinates.
 
-    Different latitudes produce different season dates. Observers above roughly
-    61°N (where the galactic center never reaches 10° at midnight) receive no events.
-    Observers at 10–20° altitude (e.g. Burlington/Toronto ~43°N, most of Europe)
-    receive events with descriptions noting the low horizon position.
+    Using nightly maximum (not midnight snapshot) correctly extends the season
+    into August–October for northern latitudes where the core is visible in early
+    evening but has set by midnight. Observers above ~61°N receive no events.
     Returns up to five milestones: season open, rising, peak, late, closing.
     """
     obs = Observer(latitude, longitude, 0.0)
     start = _date(year, 1, 1)
 
-    # Sample altitude at local midnight for every day of the year
+    # Sample nightly maximum altitude for every day of the year
     day_alts: list[tuple[str, float]] = []
     for offset in range(366):
         d = start + timedelta(days=offset)
         if d.year != year:
             break
         try:
-            alt = _gc_alt_at_local_midnight(obs, d.year, d.month, d.day, longitude)
+            alt = _gc_max_alt_during_night(obs, d.year, d.month, d.day, longitude)
             day_alts.append((d.isoformat(), alt))
         except Exception:
             continue
@@ -286,7 +295,7 @@ def get_milky_way_windows_for_year(
     # Season opens — first day above threshold
     milestones.append((
         above[0][0],
-        f"Galactic center first clears {int(min_alt)}\u00b0 altitude at midnight. "
+        f"Galactic center first clears {int(min_alt)}\u00b0 altitude during the night. "
         "Milky Way season opens for your latitude.",
     ))
 
@@ -302,12 +311,12 @@ def get_milky_way_windows_for_year(
     if peak_iso not in {m[0] for m in milestones}:
         if peak_alt < 20.0:
             peak_desc = (
-                f"Galactic core stays low on the horizon (~{int(peak_alt)}\u00b0 altitude "
-                "at midnight) — best viewed from dark sites with a clear southern horizon."
+                f"Galactic core reaches ~{int(peak_alt)}\u00b0 altitude during the night "
+                "— best viewed in early evening from dark sites with a clear southern horizon."
             )
         else:
             peak_desc = (
-                f"Peak season. Galactic core reaches {int(peak_alt)}\u00b0 altitude at midnight "
+                f"Peak season. Galactic core reaches {int(peak_alt)}\u00b0 altitude during the night "
                 "— best dark-sky opportunity of the year from your latitude."
             )
         milestones.append((peak_iso, peak_desc))
@@ -317,7 +326,7 @@ def get_milky_way_windows_for_year(
     if late_iso not in {m[0] for m in milestones}:
         milestones.append((
             late_iso,
-            "Core still high at midnight. Last wide viewing window before the season ends.",
+            "Core still visible during the night. Last wide viewing window before the season ends.",
         ))
 
     # Closing — last day above threshold
@@ -325,7 +334,7 @@ def get_milky_way_windows_for_year(
     if closing_iso not in {m[0] for m in milestones}:
         milestones.append((
             closing_iso,
-            f"Galactic center drops below {int(min_alt)}\u00b0 at midnight. "
+            f"Galactic center drops below {int(min_alt)}\u00b0 during the night. "
             "Season closing for your latitude.",
         ))
 
