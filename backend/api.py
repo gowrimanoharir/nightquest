@@ -328,11 +328,14 @@ async def post_conditions(request: ConditionsRequest) -> ConditionsResponse:
     Input: spot lat/lon, date (YYYY-MM-DD), timezone (IANA string).
     """
     spot_name = ""  # name is not sent in the request per API contract
+    tz = request.timezone if (request.timezone and request.timezone != "UTC") else _derive_timezone(
+        request.spot.lat, request.spot.lon
+    )
     cond = await _fetch_conditions_async(
         lat=request.spot.lat,
         lon=request.spot.lon,
         date_str=request.date,
-        timezone_str=request.timezone,
+        timezone_str=tz,
         spot_name=spot_name,
     )
 

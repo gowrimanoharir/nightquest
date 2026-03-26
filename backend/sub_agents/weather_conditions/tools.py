@@ -328,14 +328,6 @@ def _moon_info(obs_date: date, timezone: str, lat: float = 0.0, lon: float = 0.0
             return f"about {h} hour{'s' if h != 1 else ''}"
         return f"about {h}h {m}min"
 
-    import logging as _logging
-    _logger = _logging.getLogger(__name__)
-    _logger.warning(
-        f"MOON DEBUG obs_date={obs_date} tz={timezone} "
-        f"sunset={sunset_dt} sunrise={sunrise_dt} "
-        f"rise_dt={rise_dt} set_dt={set_dt}"
-    )
-
     # Window A: sunset → moonrise  (only if moonrise falls within the night)
     window_a: tuple[datetime, datetime] | None = None
     if rise_dt is not None and sunset_dt < rise_dt < sunrise_dt:
