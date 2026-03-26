@@ -296,21 +296,18 @@ def _moon_info(obs_date: date, timezone: str, lat: float = 0.0, lon: float = 0.0
     except Exception:
         pass
 
-    # Sunrise — search from midnight of obs_date+1 to guarantee we find the correct morning
+    # Sunrise — search from the same start as sunset (local noon), 1-day window.
+    # This reliably finds the next sunrise after sunset every time.
     sunrise_dt = None
     try:
-        next_day = obs_date + timedelta(days=1)
-        midnight_next = datetime(next_day.year, next_day.month, next_day.day, 0, 0, 0, tzinfo=tz)
-        midnight_utc = midnight_next.astimezone(ZoneInfo("UTC"))
-        sunrise_search_start = astronomy.Time.Make(
-            midnight_utc.year, midnight_utc.month, midnight_utc.day,
-            midnight_utc.hour, midnight_utc.minute, float(midnight_utc.second),
-        )
         sunrise_event = astronomy.SearchRiseSet(
-            astronomy.Body.Sun, obs, astronomy.Direction.Rise, sunrise_search_start, 0.5
+            astronomy.Body.Sun, obs, astronomy.Direction.Rise, search_start, 1.0
         )
         if sunrise_event is not None:
-            sunrise_dt = sunrise_event.Utc().replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
+            candidate = sunrise_event.Utc().replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
+            # Sanity check: a valid sunrise should be between 3 AM and 9 AM local
+            if 3 <= candidate.hour <= 9:
+                sunrise_dt = candidate
     except Exception:
         pass
 
