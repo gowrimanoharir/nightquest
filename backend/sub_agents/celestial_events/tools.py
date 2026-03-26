@@ -297,10 +297,13 @@ def get_milky_way_windows_for_year(
     if not month_best:
         return []
 
-    peak_alt = max(alt for _, alt in month_best.values())
-    peak_month = next(m for m, (_, alt) in month_best.items() if alt == peak_alt)
-    first_month = min(month_best)
-    last_month = max(month_best)
+    # Derive first/last/peak from chronological order of visible days,
+    # not from min/max month numbers — correctly handles southern hemisphere
+    # seasons that cross the December/January boundary (e.g. Oct→Mar).
+    first_month = int(above[0][0][5:7])
+    last_month  = int(above[-1][0][5:7])
+    peak_iso, peak_alt = max(above, key=lambda x: x[1])
+    peak_month  = int(peak_iso[5:7])
 
     def _classify(alt: float) -> str:
         if alt >= 40.0: return "Excellent viewing"

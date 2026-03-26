@@ -305,8 +305,9 @@ def _moon_info(obs_date: date, timezone: str, lat: float = 0.0, lon: float = 0.0
         )
         if sunrise_event is not None:
             candidate = sunrise_event.Utc().replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
-            # Sanity check: a valid sunrise should be between 3 AM and 9 AM local
-            if 3 <= candidate.hour <= 9:
+            # Sanity check: a valid sunrise should be between 3 AM and 11 AM local
+            # Upper bound is 11 to handle high-latitude winter (e.g. Scandinavia, Iceland)
+            if 3 <= candidate.hour <= 11:
                 sunrise_dt = candidate
     except Exception:
         pass
