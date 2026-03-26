@@ -51,11 +51,16 @@ function scoreColor(score: number): string {
   return colors.status.poor;
 }
 
-function openDirections(lat: number, lon: number) {
+function openDirections(lat: number, lon: number, originLat?: number, originLon?: number) {
+  const origin = originLat != null && originLon != null ? `${originLat},${originLon}` : '';
   const url = Platform.select({
-    ios: `maps://?daddr=${lat},${lon}`,
+    ios: origin
+      ? `maps://?saddr=${origin}&daddr=${lat},${lon}`
+      : `maps://?daddr=${lat},${lon}`,
     android: `google.navigation:q=${lat},${lon}`,
-    default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`,
+    default: origin
+      ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${lat},${lon}`
+      : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`,
   });
   if (url) Linking.openURL(url);
 }
@@ -464,9 +469,11 @@ const aiStyles = StyleSheet.create({
 
 interface GettingThereProps {
   spot: ActiveSpot;
+  originLat?: number;
+  originLon?: number;
 }
 
-function GettingThere({ spot }: GettingThereProps) {
+function GettingThere({ spot, originLat, originLon }: GettingThereProps) {
   const distLabel = spot.distance != null ? `${Math.round(spot.distance)} km away` : null;
   const driveTime = spot.distance != null ? estimateDriveTime(spot.distance) : null;
 
@@ -486,7 +493,7 @@ function GettingThere({ spot }: GettingThereProps) {
 
       <Pressable
         style={gtStyles.dirBtn}
-        onPress={() => openDirections(spot.lat, spot.lon)}
+        onPress={() => openDirections(spot.lat, spot.lon, originLat, originLon)}
         accessibilityLabel="Get Directions"
       >
         <Text style={gtStyles.dirBtnText}>🧭  Get Directions</Text>
@@ -570,6 +577,7 @@ export default function SpotDetail() {
   const isWeb = width >= breakpoints.web;
 
   const spot = useContextStore((s) => s.active_spot);
+  const userLocation = useContextStore((s) => s.location);
   const date = useContextStore((s) => s.date);
   const setDate = useContextStore((s) => s.setDate);
   const setVisibilityConditions = useContextStore((s) => s.setVisibilityConditions);
@@ -727,7 +735,7 @@ export default function SpotDetail() {
   );
 
   const DirectionsBlock = (
-    <GettingThere spot={spot} />
+    <GettingThere spot={spot} originLat={userLocation?.lat} originLon={userLocation?.lon} />
   );
 
   // ── Two-column web layout ────────────────────────────────────────────────
