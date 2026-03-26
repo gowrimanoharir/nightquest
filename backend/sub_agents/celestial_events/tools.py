@@ -288,55 +288,65 @@ def get_milky_way_windows_for_year(
         return []
 
     peak_iso, peak_alt = max(above, key=lambda x: x[1])
-    n = len(above)
+    peak_month = int(peak_iso[5:7])
 
+    # Build a month → best (iso, alt) lookup for quick milestone selection
+    month_best: dict[int, tuple[str, float]] = {}
+    for iso, alt in above:
+        m = int(iso[5:7])
+        if m not in month_best or alt > month_best[m][1]:
+            month_best[m] = (iso, alt)
+
+    used: set[str] = set()
     milestones: list[tuple[str, str]] = []
 
-    # Season opens — first day above threshold
-    milestones.append((
+    def _add(iso: str, desc: str) -> None:
+        if iso not in used:
+            milestones.append((iso, desc))
+            used.add(iso)
+
+    # 1. Season opens — first day above threshold
+    _add(
         above[0][0],
         f"Galactic center first clears {int(min_alt)}\u00b0 altitude during the night. "
         "Milky Way season opens for your latitude.",
-    ))
+    )
 
-    # Rising — one quarter through the season
-    rising_iso = above[n // 4][0]
-    if rising_iso not in {m[0] for m in milestones}:
-        milestones.append((
-            rising_iso,
+    # 2. Rising — best day two calendar months before peak
+    rising_month = ((peak_month - 3) % 12) + 1
+    if rising_month in month_best:
+        _add(
+            month_best[rising_month][0],
             "Core climbing higher each night. Good pre-midnight viewing begins from dark sites.",
-        ))
+        )
 
-    # Peak — day of maximum altitude
-    if peak_iso not in {m[0] for m in milestones}:
-        if peak_alt < 20.0:
-            peak_desc = (
-                f"Galactic core reaches ~{int(peak_alt)}\u00b0 altitude during the night "
-                "— best viewed in early evening from dark sites with a clear southern horizon."
-            )
-        else:
-            peak_desc = (
-                f"Peak season. Galactic core reaches {int(peak_alt)}\u00b0 altitude during the night "
-                "— best dark-sky opportunity of the year from your latitude."
-            )
-        milestones.append((peak_iso, peak_desc))
+    # 3. Peak — day of maximum altitude
+    if peak_alt < 20.0:
+        peak_desc = (
+            f"Galactic core reaches ~{int(peak_alt)}\u00b0 altitude during the night "
+            "— best viewed in early evening from dark sites with a clear southern horizon."
+        )
+    else:
+        peak_desc = (
+            f"Peak season. Galactic core reaches {int(peak_alt)}\u00b0 altitude during the night "
+            "— best dark-sky opportunity of the year from your latitude."
+        )
+    _add(peak_iso, peak_desc)
 
-    # Late — three quarters through the season
-    late_iso = above[(3 * n) // 4][0]
-    if late_iso not in {m[0] for m in milestones}:
-        milestones.append((
-            late_iso,
+    # 4. Late — best day two calendar months after peak
+    late_month = ((peak_month + 1) % 12) + 1
+    if late_month in month_best:
+        _add(
+            month_best[late_month][0],
             "Core still visible during the night. Last wide viewing window before the season ends.",
-        ))
+        )
 
-    # Closing — last day above threshold
-    closing_iso = above[-1][0]
-    if closing_iso not in {m[0] for m in milestones}:
-        milestones.append((
-            closing_iso,
-            f"Galactic center drops below {int(min_alt)}\u00b0 during the night. "
-            "Season closing for your latitude.",
-        ))
+    # 5. Closing — last day above threshold
+    _add(
+        above[-1][0],
+        f"Galactic center drops below {int(min_alt)}\u00b0 during the night. "
+        "Season closing for your latitude.",
+    )
 
     return [
         {
