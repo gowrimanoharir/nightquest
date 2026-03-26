@@ -140,13 +140,15 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   bubbleUser: {
-    backgroundColor: colors.accent.primary,
+    backgroundColor: colors.background.elevated,
+    borderWidth: 1,
+    borderColor: colors.border.default,
     borderBottomRightRadius: borderRadius.xs,
   },
   bubbleAssistant: {
-    backgroundColor: colors.background.surface,
+    backgroundColor: 'rgba(167,139,250,0.14)',
     borderWidth: 1,
-    borderColor: colors.border.default,
+    borderColor: 'rgba(167,139,250,0.30)',
     borderBottomLeftRadius: borderRadius.xs,
   },
   bubbleWithIcon: {
@@ -158,7 +160,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   textUser: {
-    color: colors.text.inverse,
+    color: colors.text.primary,
   },
   textAssistant: {
     color: colors.text.primary,
