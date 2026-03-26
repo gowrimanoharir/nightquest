@@ -1,46 +1,28 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import EventDetail from '@/components/explore/EventDetail';
-import { CelestialEvent } from '@/services/api';
-import { colors, typography } from '@/constants/theme';
-
-
+import { useContextStore } from '@/store/context';
 
 export default function EventDetailRoute() {
-  const { data } = useLocalSearchParams<{ data: string }>();
+  const router = useRouter();
+  const active_event = useContextStore((s) => s.active_event);
 
-  if (!data) {
-    return (
-      <View style={styles.error}>
-        <Text style={styles.errorText}>Event not found.</Text>
-      </View>
-    );
-  }
+  useEffect(() => {
+    if (!active_event) {
+      router.replace('/(tabs)/explore');
+    }
+  }, [active_event]);
 
-  let event: CelestialEvent;
-  try {
-    event = JSON.parse(data);
-  } catch {
-    return (
-      <View style={styles.error}>
-        <Text style={styles.errorText}>Invalid event data.</Text>
-      </View>
-    );
-  }
+  if (!active_event) return null;
 
-  return <EventDetail event={event} />;
+  return (
+    <EventDetail
+      event={{
+        name: active_event.name,
+        date: active_event.date,
+        type: active_event.type,
+        description: active_event.description,
+      }}
+    />
+  );
 }
-
-const styles = StyleSheet.create({
-  error: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background.primary,
-  },
-  errorText: {
-    ...typography.scale.body.medium,
-    color: colors.status.poor,
-  },
-});

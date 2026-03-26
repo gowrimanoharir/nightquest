@@ -113,8 +113,9 @@ export default function ExploreScreen() {
   const currentMonthKey = getCurrentMonthKey();
 
   const handleEventPress = useCallback((event: CelestialEvent) => {
-    router.push({ pathname: '/event-detail', params: { data: JSON.stringify(event) } });
-  }, [router]);
+    setActiveEvent({ name: event.name, date: event.date, type: event.type, description: event.description });
+    router.push('/event-detail');
+  }, [setActiveEvent, router]);
 
   const handleAskAI = useCallback((event: CelestialEvent) => {
     setActiveEvent({ name: event.name, date: event.date, type: event.type });

@@ -17,6 +17,7 @@ export interface ActiveEvent {
   name: string;
   date: string;
   type: EventType;
+  description?: string;
 }
 
 export interface ConditionsSummary {
