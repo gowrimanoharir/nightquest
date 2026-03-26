@@ -261,7 +261,7 @@ export default function StargazeScreen() {
   const triggerSpotSearch = useContextStore((s) => s.trigger_spot_search);
   const setTriggerSpotSearch = useContextStore((s) => s.setTriggerSpotSearch);
 
-  const [selectedDate, setSelectedDate] = useState<string>(todayISO());
+  const [selectedDate, setSelectedDate] = useState<string>(contextDate ?? todayISO());
   const [distanceKm, setDistanceKm] = useState(200);
   const [modalVisible, setModalVisible] = useState(false);
   const [spots, setLocalSpots] = useState<DarkSpotSite[]>([]);
